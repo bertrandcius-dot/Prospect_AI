@@ -912,10 +912,11 @@ const GM = {
   pan(){ if (this.map) this.map.panTo({lat: loc().lat, lng: loc().lng}); }
 };
 let gmPpm = 0;
-const ppm = () => GM.active() ? (gmPpm || 1) : Math.max(W, H) / 10;
+const VZ = {k: 1, ox: 0, oy: 0}; // drawn-map zoom (mouse wheel): scale and offset, 1 = default view
+const ppm = () => GM.active() ? (gmPpm || 1) : Math.max(W, H) / 10 * VZ.k;
 function gmProject(lat, lng){ const p = GM.proj().fromLatLngToContainerPixel(new google.maps.LatLng(lat, lng)); return {x: p.x, y: p.y}; }
-function project(lat, lng){ if (GM.active()) return gmProject(lat, lng); const L = loc(); return { x: W / 2 + (lng - L.lng) * 69 * Math.cos(L.lat * Math.PI / 180) * ppm(), y: H / 2 - (lat - L.lat) * 69 * ppm() }; }
-function unproject(x, y){ if (GM.active()){ const ll = GM.proj().fromContainerPixelToLatLng(new google.maps.Point(x, y)); return {lat: ll.lat(), lng: ll.lng()}; } const L = loc(); return { lat: L.lat - (y - H / 2) / ppm() / 69, lng: L.lng + (x - W / 2) / ppm() / (69 * Math.cos(L.lat * Math.PI / 180)) }; }
+function project(lat, lng){ if (GM.active()) return gmProject(lat, lng); const L = loc(); return { x: W / 2 + VZ.ox + (lng - L.lng) * 69 * Math.cos(L.lat * Math.PI / 180) * ppm(), y: H / 2 + VZ.oy - (lat - L.lat) * 69 * ppm() }; }
+function unproject(x, y){ if (GM.active()){ const ll = GM.proj().fromContainerPixelToLatLng(new google.maps.Point(x, y)); return {lat: ll.lat(), lng: ll.lng()}; } const L = loc(); return { lat: L.lat - (y - H / 2 - VZ.oy) / ppm() / 69, lng: L.lng + (x - W / 2 - VZ.ox) / ppm() / (69 * Math.cos(L.lat * Math.PI / 180)) }; }
 function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(devicePixelRatio || 1, 3); W = Math.max(1, r.width); H = Math.max(1, r.height); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); buildBase(); }
 function buildBase(){
   base = document.createElement("canvas"); base.width = cv.width; base.height = cv.height;
@@ -968,7 +969,7 @@ function pinPos(p){ const o = rng(hash(p.business.id)); const c = project(p.lat,
 function draw(now){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (GM.active()){ ctx.clearRect(0, 0, cv.width, cv.height); const a = gmProject(S.fence.lat, S.fence.lng), b = gmProject(S.fence.lat + 1 / 69, S.fence.lng); gmPpm = Math.abs(a.y - b.y) || 1; }
-  else if (base) ctx.drawImage(base, 0, 0);
+  else if (base){ ctx.setTransform(DPR * VZ.k, 0, 0, DPR * VZ.k, DPR * (W / 2 + VZ.ox - VZ.k * W / 2), DPR * (H / 2 + VZ.oy - VZ.k * H / 2)); ctx.drawImage(base, 0, 0, W, H); }
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const f = project(S.fence.lat, S.fence.lng), fr = S.fence.r * ppm();
   const rg = ctx.createRadialGradient(f.x, f.y, fr * .2, f.x, f.y, fr);
@@ -1375,6 +1376,18 @@ function mapTap(x, y){
   S.devices.forEach(d => { if (d.location) d.insideFence = miles(d.location, S.fence) <= S.fence.r; }); renderDevices();
 }
 cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); mapTap(e.clientX - r.left, e.clientY - r.top); });
+// Mouse wheel / trackpad pinch: enlarge or minimize the drawn map around the cursor. Google Maps handles its own wheel when it is on.
+cv.addEventListener("wheel", e => {
+  if (GM.active()) return;
+  e.preventDefault();
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const k0 = VZ.k, k1 = Math.min(6, Math.max(1, k0 * Math.exp(-e.deltaY * (e.deltaMode === 1 ? .05 : .0015))));
+  if (k1 === k0) return;
+  const q = k1 / k0, mx = (k1 - 1) * W / 2, my = (k1 - 1) * H / 2;
+  VZ.k = k1;
+  VZ.ox = Math.max(-mx, Math.min(mx, px - W / 2 - (px - W / 2 - VZ.ox) * q));
+  VZ.oy = Math.max(-my, Math.min(my, py - H / 2 - (py - H / 2 - VZ.oy) * q));
+}, {passive: false});
 addEventListener("resize", resize);
 (function watchDpr(){ const m = matchMedia(`(resolution: ${devicePixelRatio || 1}dppx)`); m.addEventListener?.("change", () => { resize(); watchDpr(); }, {once: true}); })();
 
