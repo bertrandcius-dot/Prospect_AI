@@ -1,0 +1,14 @@
+{
+  "name": "prospect-ai",
+  "version": "1.0.0",
+  "description": "Geofenced keyword-signal prospecting agent for small businesses",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "SIMULATE=true SEQUENCE_DAY_MS=5000 node --watch server/index.js",
+    "build": "./build.sh",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=18.17" }
+}

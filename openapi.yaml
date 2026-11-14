@@ -1,0 +1,155 @@
+openapi: 3.1.0
+info:
+  title: ProspectAI API
+  version: 1.1.0
+  description: |
+    Keyword signals in, personalized outreach packages out.
+    Write endpoints require the `X-API-Key` header when the server has `API_KEY` set.
+    Live events stream from `GET /api/stream` (Server-Sent Events). Event types:
+    signal, bridge, lead, monitor, package, touch, demand, reply, booked, config, device, geofence.
+    Devices and apps send voice, text and location through /api/devices (consent required).
+components:
+  securitySchemes:
+    apiKey: { type: apiKey, in: header, name: X-API-Key }
+    deviceToken: { type: apiKey, in: header, name: X-Device-Token }
+    appKey: { type: apiKey, in: header, name: X-App-Key }
+  schemas:
+    Signal:
+      type: object
+      required: [keyword, lat, lng]
+      properties:
+        keyword: { type: string, example: pizza near me }
+        lat: { type: number, example: 40.6782 }
+        lng: { type: number, example: -73.9442 }
+        source: { type: string, enum: [search, maps, voice, pixel], default: search }
+        category: { type: string, example: Restaurant }
+    Package:
+      type: object
+      properties:
+        id: { type: string, example: PKG-1001 }
+        keyword: { type: string }
+        score: { type: integer, minimum: 0, maximum: 5 }
+        failed: { type: array, items: { type: string, enum: [profile, rating, rank, dirs, ads] } }
+        demand: { type: integer }
+        channels: { type: array, items: { type: object, properties: { id: { type: string }, status: { type: string, enum: [queued, sent, failed] } } } }
+        replied: { type: boolean }
+        booked: { type: boolean }
+        business: { type: object }
+        competitor: { type: object }
+    Integration:
+      type: object
+      required: [name, url]
+      properties:
+        name: { type: string }
+        url: { type: string, format: uri, description: Must be https }
+        events: { oneOf: [ { type: string, enum: [all, signal, lead, package, booked, reply] }, { type: array, items: { type: string } } ] }
+paths:
+  /api/health:
+    get: { summary: Liveness and version, responses: { "200": { description: OK } } }
+  /api/state:
+    get: { summary: Config, stats, integrations and recent packages in one call, responses: { "200": { description: OK } } }
+  /api/stats:
+    get: { summary: Pipeline counters, responses: { "200": { description: OK } } }
+  /api/stream:
+    get: { summary: Live event stream (text/event-stream), responses: { "200": { description: Stream } } }
+  /api/events:
+    get:
+      summary: Recent events (replay buffer)
+      parameters: [ { name: limit, in: query, schema: { type: integer, maximum: 500 } } ]
+      responses: { "200": { description: OK } }
+  /api/config:
+    get: { summary: Current targeting config, responses: { "200": { description: OK } } }
+    put:
+      summary: Update keywords, fences, sources, criteria, threshold, channels, mvp, cycles, bridge, templates
+      security: [ { apiKey: [] } ]
+      requestBody: { content: { application/json: { schema: { type: object } } } }
+      responses: { "200": { description: Updated }, "400": { description: Invalid } }
+  /api/signals:
+    post:
+      summary: Ingest one signal, or up to 500 as {"signals":[...]}
+      security: [ { apiKey: [] } ]
+      requestBody: { content: { application/json: { schema: { oneOf: [ { $ref: "#/components/schemas/Signal" }, { type: object, properties: { signals: { type: array, items: { $ref: "#/components/schemas/Signal" } } } } ] } } } }
+      responses: { "201": { description: Accepted }, "400": { description: Missing keyword, lat or lng } }
+  /api/packages:
+    get:
+      summary: List outreach packages, newest first
+      parameters: [ { name: limit, in: query, schema: { type: integer, maximum: 200 } }, { name: offset, in: query, schema: { type: integer } } ]
+      responses: { "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Package" } } } } } }
+  /api/packages/{id}:
+    get:
+      summary: One package with its rendered email, SMS, call, voice and ad copy
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { "200": { description: OK }, "404": { description: Not found } }
+  /api/packages/{id}/reply:
+    post:
+      summary: Record a reply (and optionally a booked call). Point Twilio/SendGrid inbound webhooks here.
+      security: [ { apiKey: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { booked: { type: boolean } } } } } }
+      responses: { "201": { description: Updated } }
+  /api/integrations:
+    get: { summary: List integrations, responses: { "200": { description: OK } } }
+    post:
+      summary: Add a webhook (url) or an API connector (url + method + headers + bodyTemplate with {{data.*}} placeholders)
+      security: [ { apiKey: [] } ]
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Integration" } } } }
+      responses: { "201": { description: Created }, "400": { description: Invalid } }
+  /api/integrations/{id}:
+    patch:
+      summary: Turn an integration on or off
+      security: [ { apiKey: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { on: { type: boolean } } } } } }
+      responses: { "200": { description: Updated } }
+    delete:
+      summary: Remove an integration
+      security: [ { apiKey: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { "200": { description: Deleted } }
+  /api/simulator:
+    post:
+      summary: Turn demo traffic on or off
+      security: [ { apiKey: [] } ]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { on: { type: boolean } } } } } }
+      responses: { "201": { description: OK } }
+  /api/extract:
+    post:
+      summary: Return the trigger keywords found in any text (no side effects)
+      requestBody: { content: { application/json: { schema: { type: object, properties: { text: { type: string } } } } } }
+      responses: { "201": { description: "{ matches: [{ term, alias, score }] }" } }
+  /api/devices:
+    get: { summary: List registered devices and apps, security: [ { apiKey: [] } ], responses: { "200": { description: OK } } }
+    post:
+      summary: Register a phone, website or app. Requires consent true. Returns a device token once.
+      security: [ { appKey: [] } ]
+      requestBody: { content: { application/json: { schema: { type: object, required: [consent], properties: { consent: { type: boolean, const: true }, name: { type: string }, platform: { type: string, example: ios }, app: { type: string }, channels: { type: array, items: { type: string, enum: [voice, text, location, app] } } } } } } }
+      responses: { "201": { description: "{ device, token }" }, "400": { description: consent missing } }
+  /api/devices/{id}/events:
+    post:
+      summary: Send voice transcripts, text, app events or location. Keywords inside the geofence start the agent.
+      security: [ { deviceToken: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - { type: object, required: [type], properties: { type: { type: string, enum: [voice, text, app, location] }, text: { type: string, maxLength: 2000 }, lat: { type: number }, lng: { type: number }, accuracy: { type: number } } }
+                - { type: object, properties: { events: { type: array, maxItems: 100 } } }
+      responses: { "201": { description: "{ matches, insideFence }" }, "401": { description: bad token }, "403": { description: channel not consented } }
+  /api/devices/{id}:
+    delete:
+      summary: Opt out and erase the device (device token) or remove it (API key)
+      security: [ { deviceToken: [] }, { apiKey: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { "200": { description: Deleted } }
+  /api/integrations/{id}/test:
+    post:
+      summary: Send a sample package event to a webhook or API connector
+      security: [ { apiKey: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { "201": { description: Delivery result } }
+  /api/plugins:
+    get: { summary: Loaded server plugins and the channels they add, responses: { "200": { description: OK } } }
+  /sdk.js:
+    get: { summary: Browser device SDK (ProspectSDK), responses: { "200": { description: JavaScript } } }

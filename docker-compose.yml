@@ -1,0 +1,11 @@
+services:
+  prospect-ai:
+    build: .
+    ports: ["8787:8787"]
+    env_file: .env
+    environment:
+      DATA_FILE: /data/prospect.json
+    volumes: ["prospect-data:/data"]
+    restart: unless-stopped
+volumes:
+  prospect-data:
