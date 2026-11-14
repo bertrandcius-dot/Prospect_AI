@@ -1,13 +1,13 @@
 // The Ad Engine Agent: signal -> geofence -> business lookup -> qualify -> package -> channels -> follow-up sequence.
-import { fill, varsFor } from "./templates.js";
+import { fill, varsFor, DEFAULT_TEMPLATES } from "./templates.js";
 import { competitorFor } from "./providers/places.js";
 
 export const CRITERIA = ["profile", "rating", "rank", "dirs", "ads"];
-export const SOURCES = ["search", "maps", "voice", "pixel"];
+export const SOURCES = ["search", "maps", "voice", "pixel", "text", "app"];
 
 export const SEQUENCE_FULL = [
   { day: 1, ch: "email" }, { day: 1, ch: "sms" }, { day: 3, ch: "sms" }, { day: 4, ch: "dm" },
-  { day: 5, ch: "social" }, { day: 7, ch: "call" }, { day: 8, ch: "email" }, { day: 10, ch: "voice" }
+  { day: 5, ch: "social" }, { day: 5, ch: "youtube" }, { day: 6, ch: "messenger" }, { day: 7, ch: "call" }, { day: 8, ch: "email" }, { day: 9, ch: "tv" }, { day: 10, ch: "voice" }
 ];
 export const SEQUENCE_MVP = [{ day: 1, ch: "email" }, { day: 3, ch: "sms" }, { day: 7, ch: "call" }];
 
@@ -43,11 +43,11 @@ export function createAgent({ store, bus, places, channels, config, log = consol
     const source = SOURCES.includes(raw.source) ? raw.source : "search";
     const lat = Number(raw.lat), lng = Number(raw.lng);
     if (!raw.keyword || !Number.isFinite(lat) || !Number.isFinite(lng)) throw Object.assign(new Error("keyword, lat and lng are required"), { status: 400 });
-    if (!cfg.sources[source]) return { ignored: true, reason: `source ${source} is off` };
+    if (cfg.sources[source] === false) return { ignored: true, reason: `source ${source} is off` };
     const term = String(raw.keyword).toLowerCase().trim().slice(0, 80);
     const kw = cfg.keywords.find(k => k.term === term) || { term, cat: raw.category || "Restaurant", color: "#94A3B8", on: true };
     const insideFence = cfg.fences.some(f => milesBetween(f, { lat, lng }) <= f.radiusMi);
-    const signal = { keyword: term, color: kw.color, source, lat, lng, insideFence, tracked: !!kw.on };
+    const signal = { keyword: term, color: kw.color, source, lat, lng, insideFence, tracked: !!kw.on, ...(raw.deviceId ? { deviceId: raw.deviceId } : {}), ...(raw.confidence ? { confidence: raw.confidence } : {}) };
     store.bump("sig");
     if (insideFence) { store.bump("inside"); if (source === "voice") store.bump("voice"); if (source === "pixel") store.bump("pixel"); }
     const evt = bus.publish("signal", signal);
@@ -103,7 +103,8 @@ export function createAgent({ store, bus, places, channels, config, log = consol
 
   function messages(pkg) {
     const cfg = store.getConfig(); const t = cfg.templates; const v = varsFor(pkg, cfg);
-    return { subject: fill(t.emailSubject, v), email: fill(t.email, v), sms: fill(t.sms, v), call: fill(t.call, v), voice: fill(t.voice, v), ad: fill(t.ad, v) };
+    const f = k => fill(t[k] ?? DEFAULT_TEMPLATES[k] ?? "", v);
+    return { subject: f("emailSubject"), email: f("email"), sms: f("sms"), call: f("call"), voice: f("voice"), ad: f("ad"), youtube: f("youtube"), messenger: f("messenger"), tv: f("tv") };
   }
 
   function send(ch, pkg) {
@@ -114,9 +115,12 @@ export function createAgent({ store, bus, places, channels, config, log = consol
       case "call": return channels.call({ to: b.phone, script: m.call });
       case "voice": return channels.voice({ to: b.phone, message: m.voice });
       case "social": return channels.social({ email: b.email, phone: b.phone, keyword: pkg.keyword });
-      case "dm": return channels.dm({ to: b.phone, body: m.sms });
+      case "dm": return channels.dm({ to: b.phone, body: m.messenger });
+      case "messenger": return channels.messenger({ psid: b.messengerId, body: m.messenger });
+      case "youtube": return channels.youtube({ email: b.email, phone: b.phone, keyword: pkg.keyword, script: m.youtube });
+      case "tv": return channels.tv({ pkg, script: m.tv });
       case "mail": return channels.mail({ address: b.address, body: m.email });
-      default: return channels[ch] ? channels[ch]({}) : Promise.resolve({ status: "dry_run", reason: "unknown channel" });
+      default: return channels[ch] ? channels[ch]({ pkg, messages: m, business: b }) : Promise.resolve({ status: "dry_run", reason: "no adapter or plugin for this channel" });
     }
   }
 

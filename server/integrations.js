@@ -10,7 +10,10 @@ export const CATALOG = [
   { id: "tiktok", name: "TikTok Pixel", cat: "Audience", color: "#25F4EE", desc: "Retarget searchers on TikTok", on: false },
   { id: "sendgrid", name: "SendGrid", cat: "Outreach", color: "#1A82E2", desc: "Email delivery and open tracking", on: true },
   { id: "twilio", name: "Twilio", cat: "Outreach", color: "#F22F46", desc: "SMS, cold calls and voicemail drops", on: true },
-  { id: "wa", name: "WhatsApp Business", cat: "Outreach", color: "#25D366", desc: "Direct messages to business accounts", on: false },
+  { id: "wa", name: "WhatsApp Business", cat: "Outreach", color: "#25D366", desc: "Direct messages to business accounts", on: true },
+  { id: "messenger", name: "Facebook Messenger", cat: "Outreach", color: "#0084FF", desc: "Messages to the business Page inbox", on: true },
+  { id: "youtube", name: "YouTube Ads", cat: "Audience", color: "#FF0033", desc: "Video ads to searchers and owners via Google Ads", on: true },
+  { id: "ctv", name: "TV & Connected TV", cat: "Audience", color: "#F59E0B", desc: "Local TV and streaming TV spots in the geofence", on: false },
   { id: "lob", name: "Lob", cat: "Outreach", color: "#3B82F6", desc: "Printed brochures by mail", on: false },
   { id: "hubspot", name: "HubSpot", cat: "CRM", color: "#FF7A59", desc: "Create contacts and deals", on: false },
   { id: "sf", name: "Salesforce", cat: "CRM", color: "#00A1E0", desc: "Leads and opportunities", on: false },
@@ -23,7 +26,20 @@ export const CATALOG = [
 const ROUTES = { signal: ["Signals", "Automation"], lead: ["CRM", "Automation"], package: ["Outreach", "CRM", "Automation"], booked: ["CRM", "Automation"], reply: ["CRM", "Automation"] };
 
 export function createIntegrations({ store, bus, config, fetchImpl = fetch, log = console }) {
-  if (!store.listIntegrations().length) CATALOG.forEach(i => store.putIntegration({ ...i }));
+  const have = new Set(store.listIntegrations().map(i => i.id));
+  CATALOG.forEach(i => { if (!have.has(i.id)) store.putIntegration({ ...i }); });
+
+  // Fill {{path.to.value}} from the event, e.g. {{data.business.name}} or {{type}}. JSON-escaped when inside a JSON body.
+  const get = (obj, path) => path.split(".").reduce((o, k) => (o == null ? o : o[k]), obj);
+  const render = (tpl, evt, json) => String(tpl).replace(/\{\{\s*([\w.]+)\s*\}\}/g, (m, p) => { const v = get(evt, p); const s = v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v); return json ? JSON.stringify(s).slice(1, -1) : s; });
+
+  // API connector: call any HTTP API with your own method, headers and body template.
+  async function callConnector(i, evt) {
+    const url = render(i.url, evt, false);
+    const body = i.method === "GET" ? undefined : i.bodyTemplate ? render(i.bodyTemplate, evt, true) : JSON.stringify(evt);
+    const r = await fetchImpl(url, { method: i.method || "POST", headers: { "Content-Type": "application/json", ...(i.headers || {}) }, body, signal: AbortSignal.timeout(8000) });
+    return { ok: r.ok, status: r.status };
+  }
 
   const sign = body => config.webhookSecret ? "sha256=" + createHmac("sha256", config.webhookSecret).update(body).digest("hex") : undefined;
 
@@ -57,20 +73,31 @@ export function createIntegrations({ store, bus, config, fetchImpl = fetch, log 
     if (evt.type === "signal" && !evt.data.insideFence) return;
     for (const i of store.listIntegrations()) {
       if (!i.on) continue;
-      if (i.url) { if (!i.events || i.events === "all" || i.events === evt.type || (Array.isArray(i.events) && i.events.includes(evt.type))) deliver(i.url, evt); }
+      const wants = !i.events || i.events === "all" || i.events === evt.type || (Array.isArray(i.events) && i.events.includes(evt.type));
+      if (i.connector) { if (wants) callConnector(i, evt).catch(e => log.warn?.(`${i.name}: ${e.message}`)); }
+      else if (i.url) { if (wants) deliver(i.url, evt); }
       else if (cats.includes(i.cat)) builtIn(i, evt).catch(e => log.warn?.(`${i.name}: ${e.message}`));
     }
   });
 
   return {
-    list: () => store.listIntegrations().map(({ secret, ...i }) => i),
+    // Header values can hold secrets: only their names leave the server.
+    list: () => store.listIntegrations().map(({ secret, headers, ...i }) => ({ ...i, ...(headers ? { headerNames: Object.keys(headers) } : {}) })),
     add({ name, url, events = "all", cat = "Automation", color = "#94A3B8" }) {
       if (!name || typeof name !== "string") throw Object.assign(new Error("name is required"), { status: 400 });
       if (!/^https:\/\/[^\s]+$/.test(url || "")) throw Object.assign(new Error("url must be an https:// address"), { status: 400 });
       return store.putIntegration({ id: "wh_" + randomUUID().slice(0, 8), name: name.slice(0, 40), url, events, cat, color, desc: "Custom webhook", on: true, custom: true });
     },
+    addConnector({ name, url, method = "POST", headers = {}, bodyTemplate = "", events = "all", cat = "API" }) {
+      if (!name || typeof name !== "string") throw Object.assign(new Error("name is required"), { status: 400 });
+      if (!/^https:\/\/[^\s]+$/.test(url || "")) throw Object.assign(new Error("url must be an https:// address"), { status: 400 });
+      if (!["GET", "POST", "PUT", "PATCH", "DELETE"].includes(String(method).toUpperCase())) throw Object.assign(new Error("method must be GET, POST, PUT, PATCH or DELETE"), { status: 400 });
+      if (typeof headers !== "object" || Array.isArray(headers)) throw Object.assign(new Error("headers must be an object of name: value"), { status: 400 });
+      const i = store.putIntegration({ id: "api_" + randomUUID().slice(0, 8), name: name.slice(0, 40), url, method: String(method).toUpperCase(), headers, bodyTemplate: String(bodyTemplate).slice(0, 8000), events, cat, color: "#94A3B8", desc: `${String(method).toUpperCase()} API connector`, on: true, custom: true, connector: true });
+      const { headers: h, ...pub } = i; return { ...pub, headerNames: Object.keys(h) };
+    },
     toggle(id, on) { const i = store.listIntegrations().find(x => x.id === id); if (!i) return null; i.on = !!on; store.putIntegration(i); return i; },
     remove: id => store.deleteIntegration(id),
-    deliver
+    deliver, callConnector, render
   };
 }

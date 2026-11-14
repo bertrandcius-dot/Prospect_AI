@@ -247,7 +247,8 @@ table.cmp .n{font-family:var(--f-mono);text-align:right}
 @media (max-width:760px){
   .rail{display:none}
   .dock{display:flex;position:absolute;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:6px;border-radius:20px;gap:2px;z-index:14;overflow-x:auto;scrollbar-width:none;justify-content:space-between}
-  .dock .rb{width:38px;height:40px;flex:none;border-radius:12px} .dock .rb svg{width:19px;height:19px}
+  .dock .rb{flex:1 0 32px;width:auto;max-width:46px;height:40px;border-radius:12px} .dock .rb svg{width:19px;height:19px}
+  .dock .rb .badge{top:0;right:0}
   .dock .rb::after{display:none}
   .hud{flex-wrap:wrap;gap:8px}
   .brand{padding:6px 12px 6px 8px} .brand small{display:none}
@@ -263,6 +264,44 @@ table.cmp .n{font-family:var(--f-mono);text-align:right}
   .chan-grid{grid-template-columns:1fr}
   .toast{bottom:calc(120px + env(safe-area-inset-bottom,0px))}
 }
+/* device capture */
+.capbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.capbtn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:14px;border:1px solid var(--line);background:var(--tint);font-size:12px;font-weight:600;color:var(--muted);transition:.2s}
+.capbtn svg{width:22px;height:22px;color:var(--accent)}
+.capbtn[aria-pressed="true"]{color:var(--accent-ink);background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;box-shadow:0 0 26px -6px var(--glow)}
+.capbtn[aria-pressed="true"] svg{color:var(--accent-ink);animation:pulse 1.2s infinite}
+.capbtn small{font-weight:500;font-size:10.5px;opacity:.8}
+.transcript{min-height:46px;font-size:13px;line-height:1.5;color:var(--fg)}
+.transcript .partial{color:var(--muted)}
+mark.hl{background:rgba(143,227,255,.18);color:var(--accent);border-radius:4px;padding:0 3px;box-shadow:0 0 0 1px rgba(143,227,255,.35)}
+.dev{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--tint)}
+.dev .ico{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--tint-2);color:var(--accent-2);flex:none}
+.dev .ico svg{width:15px;height:15px}
+.dev .grow{flex:1;min-width:0}
+.dev .grow b{display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dev .grow small{display:block;color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.consent{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.06);font-size:12.5px}
+.consent input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.seg{display:flex;gap:4px;padding:3px;border-radius:10px;background:var(--tint);border:1px solid var(--line)}
+.seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:6px 8px;font-size:12px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--tint-2);color:var(--fg)}
+/* richer package previews */
+.chat{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.3)}
+.bubble{max-width:85%;padding:9px 12px;border-radius:16px 16px 16px 4px;font-size:13.5px;line-height:1.5;white-space:pre-wrap}
+.bubble.wa{background:#0B3D2E;color:#E7FFF4}
+.bubble.ms{background:linear-gradient(135deg,#0084FF,#A033FF);color:#fff}
+.chat .who{font-size:11px;color:var(--muted)}
+.yt{max-width:420px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0B0E14}
+.yt .vid{position:relative;aspect-ratio:16/9;max-width:100%;display:grid;place-items:center;font-family:var(--f-display);font-size:22px;font-weight:700;color:#fff;text-align:center;padding:16px}
+.yt .play{position:absolute;width:58px;height:40px;border-radius:12px;background:#FF0033;display:grid;place-items:center;right:12px;bottom:12px}
+.yt .play::after{content:"";border-left:14px solid #fff;border-top:8px solid transparent;border-bottom:8px solid transparent;margin-left:3px}
+.yt .skip{position:absolute;left:12px;bottom:12px;font:500 11px var(--f-mono);background:rgba(0,0,0,.6);color:#fff;padding:3px 7px;border-radius:6px}
+.yt .bd{padding:10px 12px;font-size:12.5px;white-space:pre-wrap;color:#C9D3E6;font-family:var(--f-mono)}
+.tvc{border-radius:14px;border:1px solid var(--line);overflow:hidden;background:#000}
+.tvc .scr{aspect-ratio:16/9;max-width:100%;display:grid;place-items:center;text-align:center;padding:18px;font-family:var(--f-display);font-size:20px;color:#fff;background:radial-gradient(90% 90% at 50% 40%,rgba(245,158,11,.35),#000 75%)}
+.tvc .meta{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--line)}
+@media (max-width:380px){ .dock{gap:0;padding:4px} .dock .rb{flex-basis:28px} .dock .rb svg{width:18px;height:18px} .brand h1{font-size:15px} .sel{max-width:96px} .mode{padding:4px 7px} .capbar{gap:4px} .capbtn{padding:10px 4px} }
+@media (max-width:760px) and (orientation:landscape){ .kpis{display:none} .drawer,.drawer.l,.drawer.r{max-height:calc(100% - 120px)} }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -301,6 +340,7 @@ table.cmp .n{font-family:var(--f-mono);text-align:right}
     <button class="rb" data-drawer="d-geo" data-tip="Geofence" aria-label="Geofence" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9" stroke-dasharray="2.5 2.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></button>
     <button class="rb" data-drawer="d-qual" data-tip="Qualification rules" aria-label="Qualification rules" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16l-6 7.5V19l-4 1v-7.5z"/></svg></button>
     <button class="rb" data-drawer="d-seq" data-tip="Follow-up sequence" aria-label="Follow-up sequence" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M8 6h3a3 3 0 0 1 3 3 3 3 0 0 0 2 2.8M8 18h3a3 3 0 0 0 3-3 3 3 0 0 1 2-2.8"/></svg></button>
+    <button class="rb" data-drawer="d-dev" data-tip="Device capture: voice, text, location" aria-label="Device capture" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/><path d="M2.5 9a4 4 0 0 0 0 6M21.5 9a4 4 0 0 1 0 6"/></svg><span class="badge" data-badge="dev" hidden></span></button>
     <div class="rsep"></div>
     <button class="rb" id="burst" data-tip="Send a test burst" aria-label="Send a test burst of signals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button>
     <button class="rb" id="recenter" data-tip="Recenter fence" aria-label="Recenter fence"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
@@ -363,6 +403,41 @@ table.cmp .n{font-family:var(--f-mono);text-align:right}
     </div>
   </section>
 
+  <section class="drawer l glass" id="d-dev" hidden aria-labelledby="h-dev">
+    <div class="dh"><span class="hico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/><path d="M2.5 9a4 4 0 0 0 0 6M21.5 9a4 4 0 0 1 0 6"/></svg></span><h2 id="h-dev">Device capture</h2><button class="x" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="db">
+      <p class="hint">The agent listens on phones, websites and apps that opted in. It pulls your trigger keywords out of voice and text, places them with the device's location, and fires the package when the device is inside the geofence.</p>
+      <label class="consent"><input type="checkbox" id="devConsent"><span><b>This device's owner agreed to capture.</b> Voice, text and location are only read after this box is ticked. Audio never leaves the device; only matched keywords are sent.</span></label>
+      <div class="capbar">
+        <button class="capbtn" id="capVoice" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Voice<small id="capVoiceTxt">Tap to listen</small></button>
+        <button class="capbtn" id="capLoc" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Location<small id="capLocTxt">Off</small></button>
+        <button class="capbtn" id="capPlace" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l7 17 2.5-7.5L21 11z"/></svg>Place<small>Tap the map</small></button>
+      </div>
+      <div class="card"><div class="row"><span class="lbl grow">Live transcript</span><span class="pill" id="devFence">No location</span></div><div class="transcript" id="transcript"><span class="partial">Say something like "where's the best pizza near me".</span></div></div>
+      <form class="list" id="textForm">
+        <div class="lbl">Text from apps</div>
+        <textarea class="inp" id="capText" rows="3" placeholder="Paste or type a message, search, note or app event, e.g. &quot;any good vegan brunch spots open now?&quot;" aria-label="Text to scan for keywords"></textarea>
+        <div class="row"><select class="inp grow" id="capTextSrc" aria-label="Where the text came from"><option value="text">Messages & search</option><option value="app">App event</option></select><button class="btn pri" type="submit">Scan & send</button></div>
+        <div class="hint" id="scanOut"></div>
+      </form>
+      <div class="group"><div class="row"><span class="lbl grow">Devices & apps</span><span class="pill" id="devCount">0</span></div><div class="list" id="devList"></div></div>
+      <div class="group"><div class="lbl">Connect a phone, site or app</div>
+<pre class="code"><span class="c">&lt;!-- websites, PWAs, WebViews --&gt;</span>
+&lt;script src="<span class="s">https://YOUR-SERVER/sdk.js</span>"&gt;&lt;/script&gt;
+const p = ProspectSDK.init({ server: "https://YOUR-SERVER" })
+await p.connect()           <span class="c">// after the person agrees</span>
+p.startVoice()              <span class="c">// on-device speech to text</span>
+p.trackText("pizza near me")
+
+<span class="c"># iOS / Android / any backend</span>
+POST /api/devices {"consent":true,"name":"Pixel 9"}
+POST /api/devices/:id/events  X-Device-Token
+  {"type":"voice","text":"…","lat":40.67,"lng":-73.94}</pre>
+        <p class="hint">Native code samples for Swift and Kotlin are in docs/device-sdk.md.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="drawer r glass" id="d-feed" hidden aria-labelledby="h-feed">
     <div class="dh"><span class="hico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></span><h2 id="h-feed">Live signals</h2><span class="pill" id="feedCount">0</span><button class="x" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="db"><div class="feed" id="feed"></div></div>
@@ -376,7 +451,7 @@ table.cmp .n{font-family:var(--f-mono);text-align:right}
       <div class="group"><div class="lbl">Package channels</div><div class="chan-grid" id="chanList"></div></div>
       <div class="group"><div class="lbl">Personalization templates</div>
         <p class="hint">Variables: {{owner_name}} {{business_name}} {{keyword}} {{search_count}} {{radius}} {{rating}} {{competitor}} {{gap}}</p>
-        <select class="inp" id="tplSel" aria-label="Template to edit"><option value="emailSubject">Email subject</option><option value="email">Email body</option><option value="sms">SMS</option><option value="call">Cold call script</option><option value="voice">Voice message</option><option value="ad">Social ad copy</option></select>
+        <select class="inp" id="tplSel" aria-label="Template to edit"><option value="emailSubject">Email subject</option><option value="email">Email body</option><option value="sms">SMS</option><option value="call">Cold call script</option><option value="voice">Voice message</option><option value="ad">Social ad copy</option><option value="youtube">YouTube ad script</option><option value="messenger">WhatsApp / Messenger</option><option value="tv">TV spot</option></select>
         <textarea class="inp" id="tplText" rows="6" aria-label="Template text"></textarea>
         <div class="row"><button class="btn sm" id="tplReset">Restore default</button><span class="hint" id="tplSaved"></span></div>
       </div>
@@ -410,6 +485,17 @@ table.cmp .n{font-family:var(--f-mono);text-align:right}
           <div class="row"><select class="inp grow" id="if-evt" aria-label="Events to send"><option value="all">All events</option><option value="package">Packages</option><option value="lead">Qualified leads</option><option value="booked">Booked calls</option><option value="signal">Signals</option></select><button class="btn pri" type="submit">Connect</button></div>
         </form>
       </div>
+      <div class="group"><div class="lbl">Connect any API</div>
+        <p class="hint">Call any REST API when something happens. Use {{data.business.name}}, {{data.keyword}}, {{data.owner}} or {{type}} in the URL and body.</p>
+        <form id="apiForm" class="list">
+          <div class="row"><select class="inp" id="api-method" aria-label="HTTP method"><option>POST</option><option>PUT</option><option>PATCH</option><option>GET</option></select><input class="inp grow" id="api-name" placeholder="Name, e.g. Pipedrive" maxlength="40" required aria-label="Connector name"></div>
+          <input class="inp full mono" id="api-url" type="url" placeholder="https://api.example.com/v1/leads" required aria-label="API URL">
+          <input class="inp full mono" id="api-headers" placeholder='Headers JSON, e.g. {"Authorization":"Bearer …"}' aria-label="Headers as JSON">
+          <textarea class="inp" id="api-body" rows="3" aria-label="Body template">{"title":"{{data.business.name}}","note":"Searched {{data.keyword}}"}</textarea>
+          <div class="row"><select class="inp grow" id="api-evt" aria-label="Events to send"><option value="package">Packages</option><option value="lead">Qualified leads</option><option value="booked">Booked calls</option><option value="all">All events</option></select><button class="btn pri" type="submit">Add connector</button></div>
+        </form>
+      </div>
+      <div class="group"><div class="lbl">Server plugins</div><div class="list" id="plugList"></div><p class="hint">Drop a file in the server's plugins/ folder to add channels, signal sources or event handlers. See docs/plugins.md.</p></div>
       <div class="group"><div class="lbl">Integration log</div><div class="log" id="intLog"><div class="t">Events sent to apps appear here.</div></div></div>
     </div>
   </section>
@@ -436,7 +522,12 @@ GET  /api/stream      <span class="c"># live events (SSE)</span>
 GET  /api/packages    <span class="c"># outreach packages</span>
 POST /api/packages/:id/reply {"booked":true}
 POST /api/integrations {"name","url","events"}
-PUT  /api/config      <span class="c"># keywords, fence, rules</span></pre>
+PUT  /api/config      <span class="c"># keywords, fence, rules</span>
+POST /api/devices     <span class="c"># register a phone or app</span>
+POST /api/devices/:id/events <span class="c"># voice, text, location</span>
+POST /api/extract     <span class="c"># keywords in any text</span>
+GET  /api/plugins     <span class="c"># loaded plugins</span>
+GET  /openapi.yaml    <span class="c"># full reference</span></pre>
       </div>
       <div class="group"><div class="lbl">In-page SDK</div>
 <pre class="code">ProspectAI.on(<span class="s">"package"</span>, p =&gt; …)
@@ -484,27 +575,33 @@ const SOURCES = [
   {id:"search", name:"Google Search Console", note:"Keyword impressions by location", w:50},
   {id:"maps", name:"Google Maps", note:"Map searches and direction requests", w:20},
   {id:"voice", name:"Voice search", note:"Opt-in assistant queries on phones", w:15},
-  {id:"pixel", name:"Social pixel", note:"Meta and TikTok pixel keyword hits", w:15}];
-const SRC_NAME = {search:"Search", maps:"Maps", voice:"Voice", pixel:"Pixel"};
+  {id:"pixel", name:"Social pixel", note:"Meta and TikTok pixel keyword hits", w:12},
+  {id:"text", name:"Text on devices", note:"Messages, searches and notes in opted-in apps", w:12},
+  {id:"app", name:"App events", note:"Keywords sent by connected apps through the SDK or API", w:8}];
+const SRC_NAME = {search:"Search", maps:"Maps", voice:"Voice", pixel:"Pixel", text:"Text", app:"App"};
+const DEVICE_SRC = new Set(["voice", "text", "app"]);
 const CRITERIA = [
   {id:"profile", name:"Google profile not optimized", short:"Profile"}, {id:"rating", name:"Rating below 4.0 or weak reviews", short:"Reviews"},
   {id:"rank", name:"Ranks low in search and AI answers", short:"Ranking"}, {id:"dirs", name:"Missing from key directories", short:"Directories"}, {id:"ads", name:"No Google Ads campaign", short:"Ads"}];
 const CHANNELS = [
   {id:"email", name:"Email", grp:"owner"}, {id:"sms", name:"Text message", grp:"owner"}, {id:"call", name:"Cold call", grp:"owner"}, {id:"voice", name:"Voice message", grp:"owner"},
-  {id:"social", name:"Social ads (pixel)", grp:"searchers"}, {id:"gads", name:"Google Ads display", grp:"searchers"}, {id:"report", name:"Competitor report", grp:"owner"},
-  {id:"form", name:"Lead form", grp:"owner"}, {id:"dm", name:"Social DM / WhatsApp", grp:"owner"}, {id:"mail", name:"Mailed brochure", grp:"owner"}];
+  {id:"social", name:"Social ads (pixel)", grp:"searchers"}, {id:"youtube", name:"YouTube ads", grp:"searchers"}, {id:"dm", name:"WhatsApp", grp:"owner"}, {id:"messenger", name:"Messenger", grp:"owner"},
+  {id:"tv", name:"TV & streaming TV ads", grp:"searchers"}, {id:"gads", name:"Google Ads display", grp:"searchers"}, {id:"report", name:"Competitor report", grp:"owner"},
+  {id:"form", name:"Lead form", grp:"owner"}, {id:"mail", name:"Mailed brochure", grp:"owner"}];
 const CH_NAME = Object.fromEntries(CHANNELS.map(c => [c.id, c.name]));
-const DEFAULT_CH = {email:true, sms:true, call:true, voice:true, social:true, gads:false, report:true, form:true, dm:false, mail:false};
+const DEFAULT_CH = {email:true, sms:true, call:true, voice:true, social:true, youtube:true, dm:true, messenger:true, tv:true, gads:false, report:true, form:true, mail:false};
 const SEQ_FULL = [
   {d:1, n:"Email + competitor report + lead form", s:"Fires the moment the package is built", ch:"email"}, {d:1, n:"Text message", s:"Short SMS with the report link", ch:"sms"},
-  {d:3, n:"SMS follow-up", s:"Nudge if the email was not opened", ch:"sms"}, {d:4, n:"Social DM / WhatsApp", s:"Message on the business's own accounts", ch:"dm"},
-  {d:5, n:"Retargeting ads", s:"Owner sees ads built from their own data", ch:"social"}, {d:7, n:"Cold call", s:"Rep calls with the script", ch:"call"},
-  {d:8, n:"Second email", s:"What competitors gained this week", ch:"email"}, {d:10, n:"Voice message drop", s:"Last touch before recycle", ch:"voice"}];
+  {d:3, n:"SMS follow-up", s:"Nudge if the email was not opened", ch:"sms"}, {d:4, n:"WhatsApp", s:"Message on the business's WhatsApp", ch:"dm"},
+  {d:5, n:"Retargeting ads", s:"Owner sees ads built from their own data", ch:"social"}, {d:5, n:"YouTube ad", s:"15-second video to searchers in the fence", ch:"youtube"},
+  {d:6, n:"Messenger", s:"Message to the business Page inbox", ch:"messenger"}, {d:7, n:"Cold call", s:"Rep calls with the script", ch:"call"},
+  {d:8, n:"Second email", s:"What competitors gained this week", ch:"email"}, {d:9, n:"TV & streaming TV spot", s:"Local 15-second spot in the geofence", ch:"tv"},
+  {d:10, n:"Voice message drop", s:"Last touch before recycle", ch:"voice"}];
 const SEQ_MVP = [{d:1, n:"Personalized email", s:"Business and owner names filled in", ch:"email"}, {d:3, n:"Text message", s:"Same variables, link to the report", ch:"sms"}, {d:7, n:"Call reminder", s:"Rep gets a task with the call script", ch:"call"}];
 const INTEGRATIONS = [
   ["gsc","Google Search Console","Signals","#4285F4",1,"Keyword impressions by query and city"],["gmaps","Google Maps Places","Signals","#34A853",1,"Business profiles, ratings, websites"],["gads","Google Ads","Signals","#FBBC04",0,"Ad presence check and display campaigns"],
   ["meta","Meta Pixel","Audience","#1877F2",1,"Custom audiences on Facebook and Instagram"],["tiktok","TikTok Pixel","Audience","#25F4EE",0,"Retarget searchers on TikTok"],
-  ["sendgrid","SendGrid","Outreach","#1A82E2",1,"Email delivery and open tracking"],["twilio","Twilio","Outreach","#F22F46",1,"SMS, cold calls and voicemail drops"],["wa","WhatsApp Business","Outreach","#25D366",0,"Direct messages to business accounts"],["lob","Lob","Outreach","#3B82F6",0,"Printed brochures by mail"],
+  ["sendgrid","SendGrid","Outreach","#1A82E2",1,"Email delivery and open tracking"],["twilio","Twilio","Outreach","#F22F46",1,"SMS, cold calls and voicemail drops"],["wa","WhatsApp Business","Outreach","#25D366",1,"Direct messages to business accounts"],["messenger","Facebook Messenger","Outreach","#0084FF",1,"Messages to the business Page inbox"],["youtube","YouTube Ads","Audience","#FF0033",1,"Video ads to searchers and owners via Google Ads"],["ctv","TV & Connected TV","Audience","#F59E0B",0,"Local TV and streaming TV spots in the geofence"],["lob","Lob","Outreach","#3B82F6",0,"Printed brochures by mail"],
   ["hubspot","HubSpot","CRM","#FF7A59",0,"Create contacts and deals"],["sf","Salesforce","CRM","#00A1E0",0,"Leads and opportunities"],["ghl","GoHighLevel","CRM","#4F7BFF",0,"Agency sub-accounts and pipelines"],
   ["zapier","Zapier","Automation","#FF4F00",0,"Send any event to 6,000+ apps"],["make","Make","Automation","#A855F7",0,"Visual automation scenarios"],["slack","Slack","Automation","#E01E5A",1,"Post booked calls to a channel"]
 ].map(([id,name,cat,color,on,desc]) => ({id,name,cat,color,on:!!on,desc}));
@@ -514,29 +611,64 @@ const TPL_DEFAULT = {
   sms: "Hi {{owner_name}}, this is Hydron Culture. {{search_count}} locals searched \"{{keyword}}\" near {{business_name}} this week. Want the free report on where they went? Reply YES. Reply STOP to opt out.",
   call: "Hi, is this {{owner_name}}? I'm calling from Hydron Culture about {{business_name}}.\n\nThis week {{search_count}} people within {{radius}} miles searched \"{{keyword}}\". Most picked {{competitor}}. I noticed {{gap}}.\n\nCould I take 10 minutes Thursday to show you the report?",
   voice: "Hi {{owner_name}}, it's Hydron Culture. {{search_count}} people near {{business_name}} searched \"{{keyword}}\" this week and most went to {{competitor}}. I have a free report for you. Call or text me back at this number.",
-  ad: "Looking for {{keyword}}? {{business_name}} is {{radius}} miles away. Order today."
+  ad: "Looking for {{keyword}}? {{business_name}} is {{radius}} miles away. Order today.",
+  messenger: "Hi {{owner_name}}! Hydron Culture here. {{search_count}} people near {{business_name}} searched \"{{keyword}}\" this week, and most went to {{competitor}}. Can I send you the free report?",
+  youtube: "[0-3s] Hungry? Searching \"{{keyword}}\"?\n[3-10s] {{business_name}} is just {{radius}} miles away.\n[10-15s] Tap to order or get directions.",
+  tv: "15s local spot: \"Craving {{keyword}}? {{business_name}} has you covered, just {{radius}} miles away in {{location}}. Visit today.\""
 };
 
 /* ================= state ================= */
 const S = {
   mode: "demo", running: true, simOn: true,
-  keywords: store.get("kw", DEFAULT_KW), sources: store.get("src", {search:true, maps:true, voice:true, pixel:true}),
+  keywords: store.get("kw", DEFAULT_KW), sources: {search:true, maps:true, voice:true, pixel:true, text:true, app:true, ...store.get("src", {})},
   locIdx: store.get("loc", 0), customLocs: store.get("customLocs", []), fence: store.get("fence", null), rate: store.get("rate", 36),
   criteria: store.get("crit", {profile:true, rating:true, rank:true, dirs:true, ads:true}), threshold: store.get("thr", 3),
-  channels: store.get("ch", DEFAULT_CH), mvp: store.get("mvp", false), cycles: store.get("cyc", 3), bridge: store.get("bridge", true),
+  channels: {...DEFAULT_CH, ...store.get("ch", {})}, mvp: store.get("mvp", false), cycles: store.get("cyc", 3), bridge: store.get("bridge", true),
   tpl: Object.assign({}, TPL_DEFAULT, store.get("tpl", {})), ints: store.get("ints", INTEGRATIONS), conn: store.get("conn", {base:"", key:""}),
-  signals: [], packages: [], kwCount: {}, unseen: {feed:0, agent:0},
+  signals: [], packages: [], kwCount: {}, unseen: {feed:0, agent:0, dev:0}, devices: [], plugins: [],
+  me: {consent: store.get("consent", false), loc: null, listening: false, watching: false, placing: false, inside: false, live: store.get("liveDevice", null)},
   stats: {sig:0, inside:0, qual:0, unq:0, pkg:0, rep:0, book:0, voice:0, pixel:0}
 };
 const allLocs = () => LOCS.concat(S.customLocs);
 const loc = () => allLocs()[S.locIdx] || LOCS[0];
 if (!S.fence) S.fence = {lat: loc().lat, lng: loc().lng, r: 1.5};
+{ const have = new Set(S.ints.map(i => i.id)); INTEGRATIONS.forEach(i => { if (!have.has(i.id)) S.ints.push({...i}); }); }
 function save(){
   store.set("kw", S.keywords); store.set("src", S.sources); store.set("loc", S.locIdx); store.set("customLocs", S.customLocs); store.set("fence", S.fence);
   store.set("rate", S.rate); store.set("crit", S.criteria); store.set("thr", S.threshold); store.set("ch", S.channels); store.set("mvp", S.mvp);
   store.set("cyc", S.cycles); store.set("bridge", S.bridge); store.set("ints", S.ints);
   const diff = {}; for (const k in S.tpl) if (S.tpl[k] !== TPL_DEFAULT[k]) diff[k] = S.tpl[k]; store.set("tpl", diff);
 }
+
+/* ================= keyword extraction (mirrors server/keywords.js) ================= */
+const STOPW = new Set(["a","an","the","some","any","for","to","of","in","at","on","please","um","uh","like","good","really","me","my"]);
+const VFIX = [[/\bnear by\b/g,"nearby"],[/\bnearby\b/g,"near me"],[/\bopen right now\b/g,"open now"],[/\bplumbers?\b/g,"plumber"],[/\btaco(s)?\b/g,"tacos"]];
+function normText(t){ t = String(t || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s'-]/g, " ").replace(/['-]/g, " ").replace(/\s+/g, " ").trim(); for (const [re, to] of VFIX) t = t.replace(re, to); return t; }
+const stemW = w => w.length > 4 && w.endsWith("ies") ? w.slice(0, -3) + "y" : w.length > 3 && w.endsWith("es") && !w.endsWith("ses") ? w.slice(0, -2) : w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w;
+const toks = t => normText(t).split(" ").filter(Boolean).map(stemW);
+function extractKeywords(text, keywords){
+  const words = toks(text); if (!words.length) return [];
+  const flat = " " + words.join(" ") + " ", out = [];
+  for (const kw of keywords){
+    if (kw.on === false) continue; let best = null;
+    for (const phrase of [kw.term, ...(kw.aliases || [])]){
+      const all = toks(phrase), need = all.filter(w => !STOPW.has(w) || all.length <= 2); if (!need.length) continue;
+      if (flat.includes(" " + need.join(" ") + " ")){ best = {term: kw.term, alias: phrase, score: 1}; break; }
+      let i = 0, gaps = 0, last = -1;
+      for (let j = 0; j < words.length && i < need.length; j++) if (words[j] === need[i]){ if (last >= 0) gaps += j - last - 1; last = j; i++; }
+      if (i === need.length && gaps <= 3 * (need.length - 1)){ const sc = Math.max(.6, 1 - gaps * .08); if (!best || sc > best.score) best = {term: kw.term, alias: phrase, score: +sc.toFixed(2)}; }
+    }
+    if (best) out.push(best);
+  }
+  return out.sort((a, b) => b.score - a.score);
+}
+function highlight(text, matches){
+  let h = esc(text);
+  matches.forEach(m => toks(m.alias).filter(w => !STOPW.has(w)).forEach(w => { h = h.replace(new RegExp("\\b(" + w.replace(/[^a-z0-9]/g, "") + "[a-z]*)\\b", "gi"), '<mark class="hl">$1</mark>'); }));
+  return h;
+}
+const PHRASES = ["where can I get {k}", "hey siri, {k}", "ok google {k}", "any {k} around here?", "looking for {k} tonight", "who has the {k}", "need {k} asap", "best {k} please"];
+const phraseFor = term => pick(PHRASES).replace("{k}", term);
 
 /* ================= event hub: one path for the demo engine and the live server ================= */
 const listeners = {}, sdkIntegrations = [];
@@ -558,7 +690,14 @@ const handlers = {
     S.signals.push({...s, color: s.color || kw?.color || "#94A3B8", t: performance.now()});
     if (S.signals.length > 280) S.signals.shift();
     addFeed(s); if (s.insideFence) bump("feed"); renderKwCounts();
+    if (s.deviceId){ const d = S.devices.find(x => x.id === s.deviceId); if (d){ d.flash = performance.now(); d.counts = d.counts || {}; d.counts.matches = (d.counts.matches || 0) + 1; } }
   },
+  device(e){
+    if (e.action === "opted_out"){ S.devices = S.devices.filter(d => d.id !== e.deviceId); }
+    else if (e.device){ const i = S.devices.findIndex(d => d.id === e.device.id); const d = {...(S.devices[i] || {}), ...e.device}; if (i >= 0) S.devices[i] = d; else { S.devices.unshift(d); bump("dev"); } }
+    renderDevices();
+  },
+  geofence(g){ say(`${g.name} ${g.entered ? "entered" : "left"} the geofence`); logTo("#bridgeLog", `geofence  ${g.name} ${g.entered ? "entered" : "left"} the fence`); },
   bridge(b){
     const pix = S.ints.filter(i => i.cat === "Audience" && i.on).map(i => i.name).join(" + ") || "no pixel connected";
     logTo("#bridgeLog", b.from === "voice" ? `voice → pixel  "${b.keyword}" searcher added to ${pix}` : `pixel → voice  "${b.keyword}" hit scheduled a voice touch`);
@@ -603,11 +742,11 @@ const Demo = {
     });
     this.biz.set(key, list); return list;
   },
-  ingest({keyword, lat, lng, source}){
+  ingest({keyword, lat, lng, source, transcript, deviceId}){
     const kw = S.keywords.find(k => k.term === keyword); if (!kw || !S.sources[source]) return;
     const insideFence = miles({lat, lng}, S.fence) <= S.fence.r;
     S.stats.sig++; if (insideFence){ S.stats.inside++; if (source === "voice") S.stats.voice++; if (source === "pixel") S.stats.pixel++; }
-    dispatch("signal", {keyword, color: kw.color, source, lat, lng, insideFence, tracked: kw.on, at: new Date().toISOString()});
+    dispatch("signal", {keyword, color: kw.color, source, lat, lng, insideFence, tracked: kw.on, at: new Date().toISOString(), ...(transcript ? {transcript} : {}), ...(deviceId ? {deviceId} : {})});
     if (!insideFence || !kw.on) return;
     if (S.bridge && (source === "voice" || source === "pixel")) dispatch("bridge", {from: source, to: source === "voice" ? "pixel" : "voice", keyword, lat, lng});
     setTimeout(() => this.process(kw, lat, lng), 450);
@@ -637,7 +776,28 @@ const Demo = {
     if (booked && !p.booked){ p.booked = true; S.stats.book++; dispatch("booked", structuredClone(p)); }
   },
   tick(dt){ if (!S.running || !S.simOn || S.mode !== "demo") return; this.acc += dt * S.rate / 60000; while (this.acc >= 1){ this.acc--; this.random(); } },
-  random(opts = {}){ const kws = S.keywords.filter(k => k.on), src = weightedSource(); if (!kws.length || !src) return; this.ingest({keyword: pick(kws).term, source: src, ...randomPoint(opts.inside)}); },
+  random(opts = {}){
+    const kws = S.keywords.filter(k => k.on), src = weightedSource(); if (!kws.length || !src) return;
+    const term = pick(kws).term;
+    if (DEVICE_SRC.has(src) && S.devices.length){
+      // Keyword heard or typed on an opted-in device: placed at that device's location.
+      const d = opts.inside ? pick(S.devices.filter(x => x.insideFence).concat(S.devices).slice(0, 8)) : pick(S.devices);
+      d.counts[src === "app" ? "app" : src]++; d.lastSeen = new Date().toISOString();
+      return this.ingest({keyword: term, source: src, lat: d.location.lat + (Math.random() - .5) * .0004, lng: d.location.lng + (Math.random() - .5) * .0004, transcript: phraseFor(term), deviceId: d.id});
+    }
+    this.ingest({keyword: term, source: src, ...randomPoint(opts.inside)});
+  },
+  fleet(){
+    const r = rng(hash(loc().name + "fleet"));
+    const models = ["iPhone 15 · Instagram", "Pixel 9 · Chrome", "Galaxy S24 · WhatsApp", "iPhone 14 · Siri", "Pixel 8 · Google Assistant", "iPad · YouTube", "Galaxy A54 · Messenger", "iPhone 16 · Safari", "Moto G · TikTok", "Web · hydronculture.com", "Android · Partner app", "iPhone 13 · Maps"];
+    S.devices = models.map((name, i) => { const p = randomPoint(r() < .7); return {id: "demo_" + i, name, platform: name.startsWith("Web") ? "web" : name.startsWith("i") ? "ios" : "android", channels: ["voice", "text", "location", "app"], location: {lat: p.lat, lng: p.lng}, insideFence: miles(p, S.fence) <= S.fence.r, counts: {voice: 0, text: 0, location: 1, app: 0, matches: 0}, simulated: true}; });
+    renderDevices();
+  },
+  wander(){
+    if (S.mode !== "demo" || !S.running) return;
+    S.devices.forEach(d => { if (!d.simulated) return; d.location.lat += (Math.random() - .5) * .0012; d.location.lng += (Math.random() - .5) * .0012; const was = d.insideFence; d.insideFence = miles(d.location, S.fence) <= S.fence.r; if (was !== d.insideFence) dispatch("geofence", {deviceId: d.id, name: d.name, entered: d.insideFence}); });
+    renderDevices();
+  },
   reset(){ this.biz.clear(); this.pkgs.clear(); }
 };
 function weightedSource(){ const act = SOURCES.filter(s => S.sources[s.id]); if (!act.length) return null; let t = Math.random() * act.reduce((a, s) => a + s.w, 0); for (const s of act){ t -= s.w; if (t <= 0) return s.id; } return act[0].id; }
@@ -664,7 +824,7 @@ const Live = {
     this.close(); this.base = base; this.health = h;
     this.es = new EventSource(this.url("/api/stream"));
     this.es.addEventListener("hello", e => this.hydrate(JSON.parse(e.data)));
-    ["signal","bridge","lead","monitor","package","touch","demand","reply","booked","config"].forEach(t => this.es.addEventListener(t, e => { const ev = JSON.parse(e.data); dispatch(t, ev.data, ev.stats); }));
+    ["signal","bridge","lead","monitor","package","touch","demand","reply","booked","config","device","geofence"].forEach(t => this.es.addEventListener(t, e => { const ev = JSON.parse(e.data); dispatch(t, ev.data, ev.stats); }));
     this.es.onerror = () => setMode("reconnecting");
     this.es.onopen = () => setMode("live");
     setMode("live"); return true;
@@ -676,6 +836,7 @@ const Live = {
     if (c.fences?.[0]) S.fence = {lat: c.fences[0].lat, lng: c.fences[0].lng, r: c.fences[0].radiusMi};
     Object.assign(S, { keywords: c.keywords, sources: c.sources, criteria: c.criteria, threshold: c.threshold, channels: c.channels, mvp: c.mvp, cycles: c.cycles, bridge: c.bridge, tpl: {...TPL_DEFAULT, ...c.templates} });
     if (snap.integrations) S.ints = snap.integrations;
+    S.devices = snap.devices || []; S.plugins = snap.plugins || [];
     S.packages = snap.packages || []; S.signals = [];
     renderAll(); buildBase();
   },
@@ -716,14 +877,11 @@ function buildBase(){
   i = 0;
   for (let y = -diag / 2; y < diag / 2; y += sp, i++){ g.strokeStyle = i % 4 === 0 ? T["map-major"] : T["map-road"]; g.lineWidth = i % 4 === 0 ? 3.5 : 1.2; g.beginPath(); g.moveTo(-diag / 2, y); g.lineTo(diag / 2, y); g.stroke(); }
   g.restore();
-  g.strokeStyle = T["map-major"]; g.lineWidth = 4; g.beginPath(); g.moveTo(0, H * (.2 + r() * .3)); g.lineTo(W, H * (.5 + r() * .4)); g.stroke();
+  r(); r(); // keep the seeded layout stable after removing the bright diagonal avenue
   g.beginPath(); const w0 = 50 + r() * 70;
   if (r() < .5){ g.moveTo(W - w0 - 60, 0); g.bezierCurveTo(W - w0, H * .3, W - w0 - 100, H * .6, W - w0 - 20, H); g.lineTo(W, H); g.lineTo(W, 0); }
   else { g.moveTo(0, H - w0 - 40); g.bezierCurveTo(W * .3, H - w0 - 100, W * .6, H - w0, W, H - w0 - 50); g.lineTo(W, H); g.lineTo(0, H); }
-  g.closePath(); g.fillStyle = T["map-water"]; g.fill(); g.strokeStyle = hexA(T.accent, .14); g.lineWidth = 1.5; g.stroke();
-  g.strokeStyle = "rgba(143,227,255,.025)"; g.lineWidth = 1;
-  for (let x = 0; x < W; x += 80){ g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
-  for (let y = 0; y < H; y += 80){ g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  g.closePath(); g.fillStyle = T["map-water"]; g.fill();
   g.fillStyle = T["map-label"]; g.font = `600 ${W < 600 ? 10 : 11}px "Chakra Petch", system-ui, sans-serif`; g.textAlign = "center";
   const hoods = loc().hoods?.length ? loc().hoods : ["North","Downtown","East","West","Midtown","South"];
   hoods.forEach((h, k) => { const cx = W * (.18 + (k % 3) * .32 + (r() - .5) * .06), cy = H * (.26 + Math.floor(k / 3) * .48 + (r() - .5) * .08); g.fillText(h.toUpperCase().split("").join(String.fromCharCode(8202, 8202)), cx, cy); });
@@ -733,7 +891,24 @@ function shape(g, src, x, y, s){
   if (src === "search") g.arc(x, y, s, 0, Math.PI * 2);
   else if (src === "maps"){ g.moveTo(x, y - s * 1.2); g.lineTo(x + s, y + s * .8); g.lineTo(x - s, y + s * .8); g.closePath(); }
   else if (src === "voice"){ g.moveTo(x, y - s * 1.25); g.lineTo(x + s * 1.25, y); g.lineTo(x, y + s * 1.25); g.lineTo(x - s * 1.25, y); g.closePath(); }
+  else if (src === "text"){ for (let k = 0; k < 6; k++){ const a = Math.PI / 3 * k + Math.PI / 6; g[k ? "lineTo" : "moveTo"](x + Math.cos(a) * s * 1.15, y + Math.sin(a) * s * 1.15); } g.closePath(); }
+  else if (src === "app"){ for (let k = 0; k < 8; k++){ const a = Math.PI / 4 * k - Math.PI / 2, rr = k % 2 ? s * .5 : s * 1.35; g[k ? "lineTo" : "moveTo"](x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); }
   else g.rect(x - s * .9, y - s * .9, s * 1.8, s * 1.8);
+}
+function drawDevices(now){
+  const list = S.devices.slice(0, 120);
+  if (S.me.loc) list.push({id: "me", me: true, location: S.me.loc, insideFence: S.me.inside, flash: S.me.flash});
+  for (const d of list){
+    if (!d.location) continue;
+    const {x, y} = project(d.location.lat, d.location.lng); d._x = x; d._y = y;
+    const col = d.insideFence ? T["accent-2"] : T.dim, hot = d.flash && now - d.flash < 1600;
+    if (d.me){ const k = (now % 2000) / 2000; ctx.strokeStyle = hexA(T.accent, .6 * (1 - k)); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 8 + k * 22, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.save(); if (d.insideFence || hot){ ctx.shadowColor = hot ? T.accent : col; ctx.shadowBlur = hot ? 18 : 8; }
+    ctx.fillStyle = "#05070B"; ctx.strokeStyle = d.me ? T.accent : hot ? T.accent : col; ctx.lineWidth = d.me ? 1.8 : 1.3;
+    roundRect(ctx, x - 4, y - 6.5, 8, 13, 2.5); ctx.fill(); ctx.stroke(); ctx.restore();
+    ctx.fillStyle = d.me ? T.accent : col; ctx.fillRect(x - 1.5, y + 3.2, 3, 1.2);
+    if (d.me){ ctx.font = '600 10.5px "Inter", system-ui, sans-serif'; ctx.textAlign = "center"; ctx.fillStyle = T.accent; ctx.fillText("THIS DEVICE", x, y + 22); }
+  }
 }
 function roundRect(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 function pinPos(p){ const o = rng(hash(p.business.id)); const c = project(p.lat, p.lng); return { x: c.x + (o() - .5) * 46, y: c.y + (o() - .5) * 46 }; }
@@ -753,6 +928,7 @@ function draw(now){
   ctx.strokeStyle = hexA(T.accent, .12); ctx.lineWidth = 1; [.33, .66].forEach(k => { ctx.beginPath(); ctx.arc(f.x, f.y, fr * k, 0, Math.PI * 2); ctx.stroke(); });
   ctx.fillStyle = T.accent; ctx.beginPath(); ctx.arc(f.x, f.y, 3, 0, Math.PI * 2); ctx.fill();
   ctx.font = '500 11px "JetBrains Mono", monospace'; ctx.textAlign = "center"; ctx.fillStyle = hexA(T.accent, .9); ctx.fillText(`${S.fence.r} MI`, f.x, f.y - fr - 9);
+  drawDevices(now);
   S.packages.slice(0, 30).forEach(p => {
     const q = pinPos(p); p._x = q.x; p._y = q.y;
     ctx.save(); ctx.shadowColor = p.color; ctx.shadowBlur = p.booked ? 18 : 8;
@@ -785,10 +961,11 @@ function draw(now){
   }
 }
 let last = performance.now();
-function frame(now){ const dt = Math.min(250, now - last); last = now; Demo.tick(dt); draw(now); requestAnimationFrame(frame); }
+let wanderAt = 0;
+function frame(now){ const dt = Math.min(250, now - last); last = now; Demo.tick(dt); if (now - wanderAt > 2500){ wanderAt = now; Demo.wander(); } draw(now); requestAnimationFrame(frame); }
 
 /* ================= rendering ================= */
-const ICON_SRC = { search:'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>', maps:'<svg viewBox="0 0 10 10"><path d="M5 .5 9.5 9h-9z" fill="currentColor"/></svg>', voice:'<svg viewBox="0 0 10 10"><path d="M5 0 10 5 5 10 0 5z" fill="currentColor"/></svg>', pixel:'<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="currentColor"/></svg>' };
+const ICON_SRC = { search:'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>', maps:'<svg viewBox="0 0 10 10"><path d="M5 .5 9.5 9h-9z" fill="currentColor"/></svg>', voice:'<svg viewBox="0 0 10 10"><path d="M5 0 10 5 5 10 0 5z" fill="currentColor"/></svg>', pixel:'<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="currentColor"/></svg>', text:'<svg viewBox="0 0 10 10"><path d="M5 .3 9.1 2.6v4.8L5 9.7.9 7.4V2.6z" fill="currentColor"/></svg>', app:'<svg viewBox="0 0 10 10"><path d="M5 0 6 4 10 5 6 6 5 10 4 6 0 5 4 4z" fill="currentColor"/></svg>' };
 function renderStats(){
   const st = S.stats;
   $("#k-sig").textContent = fmt(st.sig); $("#k-in").textContent = fmt(st.inside); $("#k-q").textContent = fmt(st.qual); $("#k-p").textContent = fmt(st.pkg);
@@ -850,24 +1027,44 @@ function renderPkgs(){
 function addFeed(s){
   const box = $("#feed"), r = document.createElement("div"); r.className = "fi" + (s.insideFence ? "" : " out");
   const col = s.insideFence ? (s.color || "#94A3B8") : "transparent";
-  r.innerHTML = `<span class="dot" style="background:${s.insideFence ? col : "var(--dim)"};color:${col}"></span><span class="k">${esc(s.keyword)}</span><time>${clock(s.at || Date.now())}</time><span class="m">${SRC_NAME[s.source] || esc(s.source)} · ${(+s.lat).toFixed(4)}, ${(+s.lng).toFixed(4)} · ${s.insideFence ? "sent to Ad Engine" : "outside fence"}</span>`;
+  r.innerHTML = `<span class="dot" style="background:${s.insideFence ? col : "var(--dim)"};color:${col}"></span><span class="k">${esc(s.keyword)}</span><time>${clock(s.at || Date.now())}</time><span class="m">${SRC_NAME[s.source] || esc(s.source)} · ${s.transcript ? "“" + esc(s.transcript) + "” · " : ""}${(+s.lat).toFixed(4)}, ${(+s.lng).toFixed(4)} · ${s.insideFence ? "sent to Ad Engine" : "outside fence"}</span>`;
   box.prepend(r); while (box.children.length > 60) box.lastChild.remove();
 }
 function renderBridge(){ $("#bridgeViz").classList.toggle("on", S.bridge); $("#bridgeOn").checked = S.bridge; }
 function renderPix(){ $("#pixList").innerHTML = S.ints.filter(i => i.cat === "Audience").map(i => `<div class="opt"><div class="grow">${esc(i.name)}<small>${esc(i.desc)}</small></div><span class="pill ${i.on ? "good" : ""}">${i.on ? "Connected" : "Off"}</span></div>`).join(""); }
 function renderInts(){
   const cats = [...new Set(S.ints.map(i => i.cat))];
-  $("#intList").innerHTML = cats.map(c => `<div class="lbl" style="margin-top:6px">${esc(c)}</div>` + S.ints.filter(i => i.cat === c).map(i => `<div class="int"><span class="lg" style="color:${esc(i.color)};border-color:${hexA(i.color, .45)};background:${hexA(i.color, .12)}">${esc(i.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase())}</span><div class="grow"><b>${esc(i.name)}</b><small>${esc(i.url || i.desc)}</small></div>${i.custom ? `<button class="x" data-del="${esc(i.id)}" aria-label="Remove ${esc(i.name)}">${X_SVG}</button>` : ""}<label class="sw"><input type="checkbox" data-int="${esc(i.id)}" ${i.on ? "checked" : ""} aria-label="Connect ${esc(i.name)}"><span></span></label></div>`).join("")).join("");
+  $("#intList").innerHTML = cats.map(c => `<div class="lbl" style="margin-top:6px">${esc(c)}</div>` + S.ints.filter(i => i.cat === c).map(i => `<div class="int"><span class="lg" style="color:${esc(i.color)};border-color:${hexA(i.color, .45)};background:${hexA(i.color, .12)}">${esc(i.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase())}</span><div class="grow"><b>${esc(i.name)}</b><small>${esc(i.url || i.desc)}</small></div>${i.custom && S.mode === "live" ? `<button class="btn sm" data-test="${esc(i.id)}">Test</button>` : ""}${i.custom ? `<button class="x" data-del="${esc(i.id)}" aria-label="Remove ${esc(i.name)}">${X_SVG}</button>` : ""}<label class="sw"><input type="checkbox" data-int="${esc(i.id)}" ${i.on ? "checked" : ""} aria-label="Connect ${esc(i.name)}"><span></span></label></div>`).join("")).join("");
   $$("#intList [data-int]").forEach(inp => inp.onchange = async () => {
     const it = S.ints.find(x => x.id === inp.dataset.int); it.on = inp.checked;
     if (S.mode === "live"){ try { await Live.req("PATCH", "/api/integrations/" + it.id, {on: it.on}); } catch (e) { toast(e.message); it.on = !it.on; inp.checked = it.on; return; } }
     save(); renderPix(); toast(`${it.name} ${it.on ? "connected" : "disconnected"}`);
+  });
+  $$("#intList [data-test]").forEach(b => b.onclick = async () => {
+    try { const r = await Live.req("POST", `/api/integrations/${b.dataset.test}/test`); toast(r.ok ? `Test delivered (HTTP ${r.status})` : `Test failed: ${r.error || "HTTP " + r.status}`); } catch (e) { toast(e.message); }
   });
   $$("#intList [data-del]").forEach(b => b.onclick = async () => {
     const id = b.dataset.del;
     if (S.mode === "live"){ try { await Live.req("DELETE", "/api/integrations/" + id); } catch (e) { return toast(e.message); } }
     S.ints = S.ints.filter(i => i.id !== id); save(); renderInts();
   });
+}
+const DEV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/></svg>';
+const WEB_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>';
+let devPending = false;
+function renderDevices(){
+  if (devPending) return; devPending = true;
+  requestAnimationFrame(() => {
+    devPending = false;
+    const inside = S.devices.filter(d => d.insideFence).length;
+    $("#devCount").textContent = `${S.devices.length} connected · ${inside} in fence`;
+    $("#devList").innerHTML = S.devices.length ? S.devices.slice(0, 12).map(d => { const c = d.counts || {}; return `<div class="dev"><span class="ico">${d.platform === "web" ? WEB_SVG : DEV_SVG}</span><div class="grow"><b>${esc(d.name)}</b><small>${(d.channels || []).map(x => SRC_NAME[x] || "Location").join(" · ")} · ${fmt(c.matches || 0)} keyword hits</small></div><span class="pill ${d.insideFence ? "ac" : ""}">${d.insideFence ? "In fence" : "Outside"}</span></div>`; }).join("")
+      : `<p class="hint">No devices yet. Connect one with the SDK below, or use this device above.</p>`;
+  });
+}
+function renderPlugins(){
+  const list = S.plugins.length ? S.plugins : [{name: "Airtable sync", description: "Adds qualified leads and booked calls to an Airtable table", channels: [], example: true}, {name: "Local TV network", description: "Books 15-second local TV and streaming TV spots", channels: ["localtv"], example: true}];
+  $("#plugList").innerHTML = list.map(p => `<div class="int"><span class="lg" style="color:var(--accent-2);border-color:rgba(182,156,255,.45);background:rgba(182,156,255,.1)">PL</span><div class="grow"><b>${esc(p.name)}</b><small>${esc(p.description || "")}${p.channels?.length ? " · adds " + p.channels.map(esc).join(", ") : ""}</small></div><span class="pill ${p.example ? "" : "good"}">${p.example ? "In repo" : "Loaded"}</span></div>`).join("");
 }
 function renderConn(){
   const h = Live.health;
@@ -876,7 +1073,7 @@ function renderConn(){
     : `<div class="row"><span class="pill warn">Demo</span><span class="grow">Example signals and businesses</span></div><p class="hint" style="margin-top:6px">Run the ProspectAI server and open its address, or enter it below, to work with real data.</p>`;
   $("#simOn").checked = S.simOn; $("#apiBase").value = S.conn.base || ""; $("#apiKey").value = S.conn.key || "";
 }
-function renderAll(){ renderLocs(); renderLegend(); renderCoords(); renderKw(); renderSources(); renderCrit(); renderChannels(); renderSeq(); renderPkgs(); renderBridge(); renderPix(); renderInts(); renderStats(); renderConn(); $("#rate").value = S.rate; $("#rateVal").textContent = S.rate + " / min"; $("#tplText").value = S.tpl[$("#tplSel").value]; }
+function renderAll(){ renderDevices(); renderPlugins(); renderLocs(); renderLegend(); renderCoords(); renderKw(); renderSources(); renderCrit(); renderChannels(); renderSeq(); renderPkgs(); renderBridge(); renderPix(); renderInts(); renderStats(); renderConn(); $("#rate").value = S.rate; $("#rateVal").textContent = S.rate + " / min"; $("#tplText").value = S.tpl[$("#tplSel").value]; }
 function say(t){ $("#tickTxt").textContent = t; }
 function logTo(sel, msg){
   const box = $(sel); if (box.children.length === 1 && box.firstElementChild.classList.contains("t")) box.innerHTML = "";
@@ -891,14 +1088,14 @@ function logIntegrations(type, d){
     .forEach(i => logTo("#intLog", `${type.padEnd(7)} → ${i.name}${i.url ? " (webhook)" : ""}  ${d.business?.name || d.business || d.keyword || ""}`));
 }
 function bump(k){
-  const open = !document.getElementById(k === "feed" ? "d-feed" : "d-agent").hidden;
+  const open = !document.getElementById({feed: "d-feed", agent: "d-agent", dev: "d-dev"}[k]).hidden;
   S.unseen[k] = open ? 0 : S.unseen[k] + 1;
   $$(`[data-badge="${k}"]`).forEach(b => { b.hidden = !S.unseen[k]; b.textContent = S.unseen[k] > 99 ? "99+" : S.unseen[k]; });
 }
 
 /* ================= package modal ================= */
 function gap(b){ const f = b.fails || {}, g = []; if (f.profile) g.push(b.website ? "your Google profile is missing hours, photos and menu" : "there is no website on your Google profile"); if (f.ads) g.push("you have no active Google Ads"); if (f.dirs) g.push(`you are listed on only ${b.dirs ?? 0} of 6 directories`); if (f.rank) g.push(`you rank #${b.rank} for this search`); if (f.rating) g.push("recent reviews are pulling your rating down"); return g.slice(0, 2).join(" and ") || "your profile has room to grow"; }
-function vars(p){ const b = p.business; return { owner_name: (b.owner || "there").split(" ")[0], business_name: b.name, keyword: p.keyword, search_count: Math.max(p.demand * 9 + 23, 23), radius: S.fence.r, rating: (+b.rating || 0).toFixed(1), competitor: p.competitor?.name || "a nearby competitor", gap: gap(b) }; }
+function vars(p){ const b = p.business; return { location: loc().name, owner_name: (b.owner || "there").split(" ")[0], business_name: b.name, keyword: p.keyword, search_count: Math.max(p.demand * 9 + 23, 23), radius: S.fence.r, rating: (+b.rating || 0).toFixed(1), competitor: p.competitor?.name || "a nearby competitor", gap: gap(b) }; }
 const fill = (t, v) => String(t).replace(/\{\{(\w+)\}\}/g, (m, k) => k in v ? v[k] : m);
 function openPkg(p){
   const b = p.business, v = vars(p), T2 = S.tpl, comp = p.competitor || {}, has = id => p.channels.some(c => c.id === id);
@@ -908,6 +1105,10 @@ function openPkg(p){
     has("call") && ["Call script", `<div class="prev">${esc(fill(T2.call, v))}</div>`],
     has("voice") && ["Voice message", `<div class="prev">${esc(fill(T2.voice, v))}</div>`],
     has("social") && ["Social ad", `<div class="adcard"><div class="img" style="background:radial-gradient(120% 120% at 20% 0%, ${p.color}, #0B0E14 75%)">${esc(b.name)}</div><div class="bd"><b>${esc(b.name)}</b> · Sponsored<br>${esc(fill(T2.ad, v))}<br><span class="hint">Audience: ${v.search_count} people who searched "${esc(p.keyword)}" in the fence, synced from pixel and voice. Shown to the owner as a preview.</span></div></div>`],
+    has("youtube") && ["YouTube ad", `<div class="yt"><div class="vid" style="background:radial-gradient(120% 120% at 80% 0%, ${p.color}, #05070B 70%)">${esc(b.name)}<span class="skip">Skip ad in 5</span><span class="play"></span></div><div class="bd">${esc(fill(T2.youtube || TPL_DEFAULT.youtube, v))}</div></div><p class="hint" style="margin-top:8px">Targets people who searched "${esc(p.keyword)}" inside the fence, through Google Ads Customer Match.</p>`],
+    has("dm") && ["WhatsApp", `<div class="chat"><span class="who">Hydron Culture → ${esc(b.name)} on WhatsApp</span><div class="bubble wa">${esc(fill(T2.messenger || TPL_DEFAULT.messenger, v))}</div></div>`],
+    has("messenger") && ["Messenger", `<div class="chat"><span class="who">Hydron Culture → ${esc(b.name)} Page inbox</span><div class="bubble ms">${esc(fill(T2.messenger || TPL_DEFAULT.messenger, v))}</div></div>`],
+    has("tv") && ["TV spot", `<div class="tvc"><div class="scr">${esc(fill(T2.tv || TPL_DEFAULT.tv, v))}</div><div class="meta"><span class="pill ac">15 seconds</span><span class="pill">Local TV + streaming TV</span><span class="pill">${S.fence.r} mi around ${esc(loc().name)}</span><span class="pill">Evening + weekend</span></div></div>`],
     has("report") && ["Competitor report", `<div class="tblwrap"><table class="cmp"><thead><tr><th>Business</th><th class="n">Rating</th><th class="n">Reviews</th><th class="n">Rank</th><th class="n">Directories</th></tr></thead><tbody><tr><td>${esc(b.name)}</td><td class="n">${(+b.rating).toFixed(1)}</td><td class="n">${fmt(b.reviews)}</td><td class="n">#${b.rank}</td><td class="n">${b.dirs ?? "–"}/6</td></tr><tr><td>${esc(comp.name)}</td><td class="n">${comp.rating}</td><td class="n">${fmt(comp.reviews)}</td><td class="n">#${comp.rank}</td><td class="n">${comp.dirs}/6</td></tr></tbody></table></div>`],
     has("form") && ["Lead form", `<div class="prev">Prefilled intake form\n\nBusiness: ${esc(b.name)}\nOwner: ${esc(b.owner)}\nGoal: Get found for "${esc(p.keyword)}"\n\n[ Book my free 10-minute review ]</div>`]
   ].filter(Boolean);
@@ -934,7 +1135,7 @@ function toggleDrawer(id){
   const d = document.getElementById(id), willOpen = d.hidden, side = d.classList.contains("l") ? "l" : "r";
   $$(".drawer").forEach(x => { if (x !== d && (isPhone() || x.classList.contains(side))) x.hidden = true; });
   d.hidden = !willOpen; syncRails(); $("#tip").hidden = true;
-  if (willOpen && (id === "d-feed" || id === "d-agent")){ const k = id === "d-feed" ? "feed" : "agent"; S.unseen[k] = 0; $$(`[data-badge="${k}"]`).forEach(b => b.hidden = true); }
+  if (willOpen && (id === "d-feed" || id === "d-agent" || id === "d-dev")){ const k = {"d-feed": "feed", "d-agent": "agent", "d-dev": "dev"}[id]; S.unseen[k] = 0; $$(`[data-badge="${k}"]`).forEach(b => b.hidden = true); }
 }
 document.addEventListener("click", e => {
   const b = e.target.closest(".rb[data-drawer]"); if (b) return toggleDrawer(b.dataset.drawer);
@@ -948,7 +1149,7 @@ document.addEventListener("keydown", e => {
 
 /* ================= controls ================= */
 $("#locSel").onchange = e => { S.locIdx = +e.target.value; changeLocation(); };
-function changeLocation(){ S.fence = {lat: loc().lat, lng: loc().lng, r: S.fence.r}; S.signals = []; if (S.mode === "demo"){ S.packages = []; Demo.reset(); } buildBase(); renderLegend(); renderCoords(); renderPkgs(); changed(); toast("Targeting " + loc().name); }
+function changeLocation(){ S.fence = {lat: loc().lat, lng: loc().lng, r: S.fence.r}; S.signals = []; if (S.mode === "demo"){ S.packages = []; Demo.reset(); Demo.fleet(); } buildBase(); renderLegend(); renderCoords(); renderPkgs(); changed(); toast("Targeting " + loc().name); }
 $("#runBtn").onclick = () => {
   S.running = !S.running;
   $("#runBtn").setAttribute("aria-label", S.running ? "Pause live feed" : "Resume live feed");
@@ -1004,6 +1205,95 @@ $("#connForm").onsubmit = async e => {
 $("#goDemo").onclick = () => { Live.close(); S.simOn = true; setMode("demo"); toast("Using demo data"); };
 $("#copyState").onclick = () => { const txt = JSON.stringify(window.ProspectAI.getState(), null, 2); (navigator.clipboard?.writeText(txt) || Promise.reject()).then(() => toast("State copied"), () => toast("Copy is blocked here. Run ProspectAI.getState() in the console.")); };
 
+/* ================= device capture: voice, text, location ================= */
+let dictation = null, webSpeech = null;
+function needConsent(){ if (S.me.consent) return false; toast("Tick the consent box first"); $("#devConsent").focus(); return true; }
+function setMeLoc(ll, how){
+  S.me.loc = {lat: ll.lat, lng: ll.lng}; const was = S.me.inside; S.me.inside = miles(S.me.loc, S.fence) <= S.fence.r;
+  $("#devFence").textContent = S.me.inside ? "Inside geofence" : "Outside geofence"; $("#devFence").className = "pill " + (S.me.inside ? "good" : "warn");
+  $("#capLocTxt").textContent = how;
+  if (was !== S.me.inside) say(`This device ${S.me.inside ? "entered" : "is outside"} the geofence`);
+  if (S.mode === "live") liveDeviceEvent({type: "location", lat: ll.lat, lng: ll.lng}).catch(() => {});
+}
+async function liveDevice(){
+  if (S.me.live && S.me.live.base === Live.base) return S.me.live;
+  const r = await Live.req("POST", "/api/devices", {consent: true, name: "Dashboard · " + (navigator.userAgentData?.platform || navigator.platform || "browser"), platform: "web", channels: ["voice", "text", "location", "app"]});
+  S.me.live = {id: r.device.id, token: r.token, base: Live.base}; store.set("liveDevice", S.me.live); return S.me.live;
+}
+async function liveDeviceEvent(ev){
+  const d = await liveDevice();
+  const res = await fetch(Live.url(`/api/devices/${d.id}/events`), {method: "POST", headers: {"Content-Type": "application/json", "X-Device-Token": d.token}, body: JSON.stringify(ev)});
+  if (res.status === 404 || res.status === 401){ S.me.live = null; store.set("liveDevice", null); return liveDeviceEvent(ev); }
+  return res.json();
+}
+// One path for every captured phrase: extract keywords, place them at this device, send them through the agent.
+async function capture(text, source){
+  const matches = extractKeywords(text, S.keywords);
+  $("#transcript").innerHTML = (matches.length ? highlight(text, matches) : esc(text)) + `<div class="hint" style="margin-top:4px">${matches.length ? "Matched: " + matches.map(m => `<b>${esc(m.term)}</b>${m.score < 1 ? ` (${Math.round(m.score * 100)}%)` : ""}`).join(", ") : "No trigger keywords in this phrase."}</div>`;
+  if (!matches.length) return matches;
+  const at = S.me.loc || {lat: S.fence.lat, lng: S.fence.lng};
+  if (!S.me.loc) toast("No device location yet, so the fence center was used. Turn on Location or Place the device.");
+  S.me.flash = performance.now();
+  if (S.mode === "live"){
+    try { if (!S.me.loc) await liveDeviceEvent({type: "location", lat: at.lat, lng: at.lng}); await liveDeviceEvent({type: source, text}); } catch (e) { toast(e.message); }
+  } else matches.forEach(m => Demo.ingest({keyword: m.term, lat: at.lat + (Math.random() - .5) * .0003, lng: at.lng + (Math.random() - .5) * .0003, source, transcript: text, deviceId: "me"}));
+  return matches;
+}
+function voiceState(on, note){ S.me.listening = on; $("#capVoice").setAttribute("aria-pressed", on); $("#capVoiceTxt").textContent = note || (on ? "Listening…" : "Tap to listen"); }
+$("#capVoice").onclick = () => {
+  if (needConsent()) return;
+  if (S.me.listening){ if (dictation) dictation.stop().catch(() => {}); if (webSpeech){ webSpeech.keep = false; webSpeech.r.stop(); } return voiceState(false); }
+  if (dictation){ dictation.start().then(() => voiceState(true)).catch(e => { voiceState(false, e?.code === "not_granted" ? "Mic not allowed" : "Try again"); if (e?.code === "not_granted") toast("Microphone access was declined. Use the text box instead."); }); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR){ voiceState(false, "Not available"); return toast("Voice capture is not available in this browser. Use Chrome, or the text box below."); }
+  const r = new SR(); r.continuous = true; r.interimResults = true; r.lang = navigator.language || "en-US";
+  webSpeech = {r, keep: true};
+  r.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++){ const t = e.results[i][0].transcript; if (e.results[i].isFinal) capture(t, "voice"); else $("#transcript").innerHTML = `<span class="partial">${esc(t)}</span>`; } };
+  r.onerror = e => { if (e.error === "not-allowed"){ webSpeech.keep = false; voiceState(false, "Mic not allowed"); toast("Microphone access was blocked. Use the text box instead."); } };
+  r.onend = () => { if (webSpeech?.keep) try { r.start(); } catch {} else voiceState(false); };
+  try { r.start(); voiceState(true); } catch { voiceState(false, "Try again"); }
+};
+$("#capLoc").onclick = () => {
+  if (needConsent()) return;
+  if (S.me.watching){ navigator.geolocation.clearWatch(S.me.watchId); S.me.watching = false; $("#capLoc").setAttribute("aria-pressed", "false"); $("#capLocTxt").textContent = S.me.loc ? "Paused" : "Off"; return; }
+  if (!("geolocation" in navigator)) return toast("Location is not available here. Tap Place, then tap the map.");
+  $("#capLocTxt").textContent = "Locating…";
+  S.me.watchId = navigator.geolocation.watchPosition(pos => {
+    S.me.watching = true; $("#capLoc").setAttribute("aria-pressed", "true");
+    setMeLoc({lat: pos.coords.latitude, lng: pos.coords.longitude}, `±${Math.round(pos.coords.accuracy)} m`);
+    if (miles(S.me.loc, {lat: loc().lat, lng: loc().lng}) > 25) toast("You are far from the target area. Target your own area under Geofence to see yourself on the map.");
+  }, () => { S.me.watching = false; $("#capLoc").setAttribute("aria-pressed", "false"); $("#capLocTxt").textContent = "Blocked"; toast("Location is blocked here. Tap Place, then tap the map to set this device's position."); }, {enableHighAccuracy: true, maximumAge: 15000, timeout: 12000});
+};
+$("#capPlace").onclick = () => { if (needConsent()) return; S.me.placing = !S.me.placing; $("#capPlace").setAttribute("aria-pressed", S.me.placing); if (S.me.placing){ toast("Tap the map where this device is"); if (isPhone()){ $$(".drawer").forEach(d => d.hidden = true); syncRails(); } } };
+$("#devConsent").checked = S.me.consent;
+$("#devConsent").onchange = e => {
+  S.me.consent = e.target.checked; store.set("consent", S.me.consent);
+  if (!S.me.consent){
+    if (S.me.listening) $("#capVoice").click();
+    if (S.me.watching) $("#capLoc").click();
+    S.me.loc = null; S.me.placing = false; $("#capPlace").setAttribute("aria-pressed", "false"); $("#devFence").textContent = "No location"; $("#devFence").className = "pill";
+    if (S.mode === "live" && S.me.live) fetch(Live.url(`/api/devices/${S.me.live.id}`), {method: "DELETE", headers: {"X-Device-Token": S.me.live.token}}).catch(() => {});
+    S.me.live = null; store.set("liveDevice", null); toast("Capture stopped and this device was removed");
+  }
+};
+$("#textForm").onsubmit = async e => {
+  e.preventDefault(); if (needConsent()) return;
+  const t = $("#capText").value.trim(); if (!t) return;
+  const m = await capture(t, $("#capTextSrc").value);
+  $("#scanOut").innerHTML = m.length ? `Sent ${m.length} keyword${m.length > 1 ? "s" : ""} to the agent.` : "No trigger keywords found. Add one under Keyword triggers.";
+};
+$("#apiForm").onsubmit = async e => {
+  e.preventDefault();
+  const name = $("#api-name").value.trim(), url = $("#api-url").value.trim(), method = $("#api-method").value, bodyTemplate = $("#api-body").value, events = $("#api-evt").value;
+  let headers = {}; const raw = $("#api-headers").value.trim();
+  if (raw){ try { headers = JSON.parse(raw); if (typeof headers !== "object" || Array.isArray(headers)) throw 0; } catch { return toast('Headers must be JSON like {"Authorization":"Bearer …"}'); } }
+  if (!/^https:\/\//.test(url)) return toast("Use an https:// API address");
+  let it = {id: "api_" + Date.now().toString(36), name, url, method, events, cat: "API", color: "#94A3B8", desc: `${method} API connector`, on: true, custom: true, connector: true, headerNames: Object.keys(headers)};
+  if (S.mode === "live"){ try { it = await Live.req("POST", "/api/integrations", {name, url, method, headers, bodyTemplate, events, connector: true}); } catch (err) { return toast(err.message); } }
+  S.ints.push(it); save(); renderInts(); e.target.reset(); $("#api-body").value = bodyTemplate;
+  toast(S.mode === "live" ? `${name} connected. Use Test to send a sample event.` : `${name} added. It starts calling the API once a server is connected.`);
+};
+
 cv.addEventListener("click", e => {
   const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, tip = $("#tip");
   const pk = S.packages.find(p => p._x != null && Math.hypot(p._x - x, p._y - y) < 11); if (pk) return openPkg(pk);
@@ -1014,7 +1304,10 @@ cv.addEventListener("click", e => {
   }
   if (!tip.hidden){ tip.hidden = true; return; }
   if ($$(".drawer").some(d => !d.hidden) && isPhone()){ $$(".drawer").forEach(d => d.hidden = true); syncRails(); return; }
+  if (S.me.placing){ S.me.placing = false; $("#capPlace").setAttribute("aria-pressed", "false"); setMeLoc(unproject(x, y), "Placed on map"); toast("Device placed. Voice and text keywords now fire from here."); return; }
   const ll = unproject(x, y); S.fence.lat = ll.lat; S.fence.lng = ll.lng; renderCoords(); changed();
+  if (S.me.loc) setMeLoc(S.me.loc, $("#capLocTxt").textContent);
+  S.devices.forEach(d => { if (d.location) d.insideFence = miles(d.location, S.fence) <= S.fence.r; }); renderDevices();
 });
 addEventListener("resize", resize);
 
@@ -1030,18 +1323,27 @@ window.ProspectAI = {
   registerIntegration(def){ sdkIntegrations.push(def); const id = "sdk_" + (def.id || def.name); S.ints.push({id, name: def.name, cat: def.category || "Automation", color: def.color || "#94A3B8", on: true, desc: def.description || "Registered in the page", custom: true}); renderInts(); return id; },
   setGeofence({lat, lng, radius}){ if (lat != null && lng != null){ S.fence.lat = +lat; S.fence.lng = +lng; } if (radius) S.fence.r = +radius; renderCoords(); changed(); },
   connect: base => Live.connect(base),
-  getState: () => ({ mode: S.mode, location: loc(), fence: {...S.fence}, keywords: S.keywords.map(k => ({...k, count: S.kwCount[k.term] || 0})), stats: {...S.stats}, packages: S.packages.map(({_x, _y, ...p}) => p), integrations: S.ints })
+  extractKeywords: text => extractKeywords(text, S.keywords),
+  captureText: (text, source = "text") => capture(String(text), source === "app" ? "app" : "text"),
+  getState: () => ({ mode: S.mode, devices: S.devices.map(({_x, _y, flash, ...d}) => d), location: loc(), fence: {...S.fence}, keywords: S.keywords.map(k => ({...k, count: S.kwCount[k.term] || 0})), stats: {...S.stats}, packages: S.packages.map(({_x, _y, ...p}) => p), integrations: S.ints })
 };
 
 /* ================= boot ================= */
 renderAll(); resize();
 requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
 if (document.fonts) document.fonts.ready.then(buildBase);
+// In the Claude artifact viewer, speech comes from the dictation capability; elsewhere from the browser's speech API.
+if (window.claude?.use) window.claude.use("dictation").then(d => {
+  if (!d) return; dictation = d;
+  d.onPartial(({text}) => { $("#transcript").innerHTML = `<span class="partial">${esc(text)}</span>`; });
+  d.onFinal(({text}) => { if (text && text.trim()) capture(text, "voice"); });
+  d.onState(({state}) => voiceState(state === "listening"));
+}).catch(() => {});
 (async () => {
   // Served by the ProspectAI server, or a saved server address? Go live. Otherwise run the in-browser demo engine.
   const candidates = [...new Set([S.conn.base, /^https?:$/.test(location.protocol) ? location.origin : ""].filter(Boolean))];
   for (const c of candidates) if (await Live.connect(c)) return;
-  setMode("demo");
+  setMode("demo"); Demo.fleet();
   for (let i = 0; i < 14; i++) Demo.random();
 })();
 })();

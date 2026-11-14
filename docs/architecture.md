@@ -7,6 +7,7 @@ flowchart LR
     MAPS[Google Maps] --> ING
     VOICE[Voice search, opt-in] --> ING
     PIX[Social pixel] --> ING
+    DEV[Opted-in devices & apps: voice, text, location] --> KX[Keyword extraction] --> ING
   end
   ING[Signal ingest + geofence filter] --> Q{Qualify: 5 weak-presence checks}
   Q -- "3+ failed" --> AGENT[Ad Engine Agent: build package]
@@ -14,7 +15,8 @@ flowchart LR
   AGENT --> EMAIL[Email]
   AGENT --> SMS[SMS]
   AGENT --> CALL[Cold call / voice drop]
-  AGENT --> ADS[Social + Google ads]
+  AGENT --> ADS[Social, YouTube, TV ads]
+  AGENT --> MSG[WhatsApp + Messenger]
   AGENT --> REP[Competitor report + lead form]
   VOICE <-. bridge .-> PIX
   AGENT --> SEQ[Follow-up sequence, 14-day recycle]

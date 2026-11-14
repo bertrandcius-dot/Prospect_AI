@@ -14,10 +14,10 @@ export const DEFAULT_CONFIG = {
     { term: "emergency plumber", cat: "Home services", color: "#38BDF8", on: true },
     { term: "hair salon open now", cat: "Beauty", color: "#F472B6", on: true }
   ],
-  sources: { search: true, maps: true, voice: true, pixel: true },
+  sources: { search: true, maps: true, voice: true, pixel: true, text: true, app: true },
   criteria: { profile: true, rating: true, rank: true, dirs: true, ads: true },
   threshold: 3,
-  channels: { email: true, sms: true, call: true, voice: true, social: true, gads: false, report: true, form: true, dm: false, mail: false },
+  channels: { email: true, sms: true, call: true, voice: true, social: true, youtube: true, dm: true, messenger: true, tv: false, gads: false, report: true, form: true, mail: false },
   mvp: false,
   cycles: 3,
   bridge: true,
@@ -31,6 +31,7 @@ export class MemoryStore {
     this.businesses = new Map();   // key: placeId
     this.packages = new Map();     // key: package id
     this.integrations = new Map(); // key: integration id
+    this.devices = new Map();      // key: device id
     this.stats = { sig: 0, inside: 0, qual: 0, unq: 0, pkg: 0, rep: 0, book: 0, voice: 0, pixel: 0 };
     this.seq = 1000;
     if (file && existsSync(file)) this.load();
@@ -44,6 +45,7 @@ export class MemoryStore {
       for (const b of j.businesses || []) this.businesses.set(b.id, b);
       for (const p of j.packages || []) this.packages.set(p.id, p);
       for (const i of j.integrations || []) this.integrations.set(i.id, i);
+      for (const d of j.devices || []) this.devices.set(d.id, d);
     } catch (e) { console.error("store: could not load", this.file, e.message); }
   }
   save() {
@@ -55,7 +57,8 @@ export class MemoryStore {
         config: this.config, stats: this.stats, seq: this.seq,
         businesses: [...this.businesses.values()].slice(-5000),
         packages: [...this.packages.values()].slice(-5000),
-        integrations: [...this.integrations.values()]
+        integrations: [...this.integrations.values()],
+        devices: [...this.devices.values()]
       }));
       renameSync(tmp, this.file);
     }, 250);

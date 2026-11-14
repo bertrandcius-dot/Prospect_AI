@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
   title: ProspectAI API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Keyword signals in, personalized outreach packages out.
     Write endpoints require the `X-API-Key` header when the server has `API_KEY` set.
     Live events stream from `GET /api/stream` (Server-Sent Events). Event types:
-    signal, bridge, lead, monitor, package, touch, demand, reply, booked, config.
+    signal, bridge, lead, monitor, package, touch, demand, reply, booked, config, device, geofence.
+    Devices and apps send voice, text and location through /api/devices (consent required).
 components:
   securitySchemes:
     apiKey: { type: apiKey, in: header, name: X-API-Key }
+    deviceToken: { type: apiKey, in: header, name: X-Device-Token }
+    appKey: { type: apiKey, in: header, name: X-App-Key }
   schemas:
     Signal:
       type: object
@@ -87,7 +90,7 @@ paths:
   /api/integrations:
     get: { summary: List integrations, responses: { "200": { description: OK } } }
     post:
-      summary: Add a webhook integration (signed with HMAC-SHA256, retried with backoff)
+      summary: Add a webhook (url) or an API connector (url + method + headers + bodyTemplate with {{data.*}} placeholders)
       security: [ { apiKey: [] } ]
       requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Integration" } } } }
       responses: { "201": { description: Created }, "400": { description: Invalid } }
@@ -109,3 +112,44 @@ paths:
       security: [ { apiKey: [] } ]
       requestBody: { content: { application/json: { schema: { type: object, properties: { on: { type: boolean } } } } } }
       responses: { "201": { description: OK } }
+  /api/extract:
+    post:
+      summary: Return the trigger keywords found in any text (no side effects)
+      requestBody: { content: { application/json: { schema: { type: object, properties: { text: { type: string } } } } } }
+      responses: { "201": { description: "{ matches: [{ term, alias, score }] }" } }
+  /api/devices:
+    get: { summary: List registered devices and apps, security: [ { apiKey: [] } ], responses: { "200": { description: OK } } }
+    post:
+      summary: Register a phone, website or app. Requires consent true. Returns a device token once.
+      security: [ { appKey: [] } ]
+      requestBody: { content: { application/json: { schema: { type: object, required: [consent], properties: { consent: { type: boolean, const: true }, name: { type: string }, platform: { type: string, example: ios }, app: { type: string }, channels: { type: array, items: { type: string, enum: [voice, text, location, app] } } } } } } }
+      responses: { "201": { description: "{ device, token }" }, "400": { description: consent missing } }
+  /api/devices/{id}/events:
+    post:
+      summary: Send voice transcripts, text, app events or location. Keywords inside the geofence start the agent.
+      security: [ { deviceToken: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - { type: object, required: [type], properties: { type: { type: string, enum: [voice, text, app, location] }, text: { type: string, maxLength: 2000 }, lat: { type: number }, lng: { type: number }, accuracy: { type: number } } }
+                - { type: object, properties: { events: { type: array, maxItems: 100 } } }
+      responses: { "201": { description: "{ matches, insideFence }" }, "401": { description: bad token }, "403": { description: channel not consented } }
+  /api/devices/{id}:
+    delete:
+      summary: Opt out and erase the device (device token) or remove it (API key)
+      security: [ { deviceToken: [] }, { apiKey: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { "200": { description: Deleted } }
+  /api/integrations/{id}/test:
+    post:
+      summary: Send a sample package event to a webhook or API connector
+      security: [ { apiKey: [] } ]
+      parameters: [ { name: id, in: path, required: true, schema: { type: string } } ]
+      responses: { "201": { description: Delivery result } }
+  /api/plugins:
+    get: { summary: Loaded server plugins and the channels they add, responses: { "200": { description: OK } } }
+  /sdk.js:
+    get: { summary: Browser device SDK (ProspectSDK), responses: { "200": { description: JavaScript } } }

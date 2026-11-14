@@ -11,9 +11,12 @@ import { createIntegrations } from "./integrations.js";
 import { createChannels } from "./channels/index.js";
 import { GooglePlaces, SimulatedPlaces } from "./providers/places.js";
 import { startSimulator } from "./simulator.js";
+import { createDevices } from "./devices.js";
+import { loadPlugins, wirePlugins } from "./plugins.js";
+import { extractKeywords } from "./keywords.js";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 const CONFIG_KEYS = ["location", "fences", "keywords", "sources", "criteria", "threshold", "channels", "mvp", "cycles", "bridge", "templates"];
 
 export function createApp(config, deps = {}) {
@@ -24,6 +27,10 @@ export function createApp(config, deps = {}) {
   const channels = deps.channels || createChannels(config.keys);
   const agent = createAgent({ store, bus, places, channels, config, log });
   const integrations = createIntegrations({ store, bus, config, fetchImpl: deps.fetch || fetch, log });
+  const devices = createDevices({ store, bus, agent });
+  const plugins = { list: () => [], stop() {} };
+  const ready = (deps.plugins ? Promise.resolve(deps.plugins) : loadPlugins(config.pluginsDir ? path.resolve(ROOT, config.pluginsDir) : "", log))
+    .then(pl => Object.assign(plugins, wirePlugins(pl, { bus, agent, store, channels, log })));
   let sim = null;
   const setSim = on => { if (on && !sim) sim = startSimulator({ agent, store, ratePerMin: config.simulateRate, log }); if (!on && sim) { sim.stop(); sim = null; } };
   if (config.simulate && !deps.noSimulator) setSim(true);
@@ -31,7 +38,7 @@ export function createApp(config, deps = {}) {
   const started = Date.now();
 
   /* ---------- helpers ---------- */
-  const cors = { "Access-Control-Allow-Origin": config.corsOrigin, "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization", "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS" };
+  const cors = { "Access-Control-Allow-Origin": config.corsOrigin, "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization, X-Device-Token, X-App-Key", "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS" };
   const send = (res, code, body) => { res.writeHead(code, { "Content-Type": "application/json", ...cors }); res.end(JSON.stringify(body)); };
   const fail = (res, e) => send(res, e.status || 500, { error: e.status ? e.message : "Internal error" });
   const body = req => new Promise((ok, no) => {
@@ -53,7 +60,8 @@ export function createApp(config, deps = {}) {
     if (buckets.size > 10000) buckets.clear();
     return b.n > config.rateLimit.perMinute;
   };
-  const snapshot = () => ({ config: store.getConfig(), stats: store.stats, integrations: integrations.list(), packages: store.listPackages({ limit: 40 }).map(agent.summary), simulate: !!sim, version: VERSION, provider: places.name });
+  const snapshot = () => ({ config: store.getConfig(), stats: store.stats, integrations: integrations.list(), packages: store.listPackages({ limit: 40 }).map(agent.summary), devices: devices.list(), plugins: plugins.list(), simulate: !!sim, version: VERSION, provider: places.name });
+  const appKeyOk = req => !config.deviceAppKey || req.headers["x-app-key"] === config.deviceAppKey;
 
   bus.subscribe(evt => { const line = `id: ${evt.id}\nevent: ${evt.type}\ndata: ${JSON.stringify({ ...evt, stats: store.stats })}\n\n`; for (const c of clients) c.write(line); });
 
@@ -79,7 +87,20 @@ export function createApp(config, deps = {}) {
     ["GET", /^\/api\/packages\/([\w-]+)$/, async (req, m) => { const p = store.getPackage(m[1]); if (!p) throw Object.assign(new Error("Package not found"), { status: 404 }); return { ...agent.summary(p), messages: agent.messages(p.id) }; }],
     ["POST", /^\/api\/packages\/([\w-]+)\/reply$/, async (req, m) => { const b = await body(req); const r = agent.reply(m[1], b); if (!r) throw Object.assign(new Error("Package not found"), { status: 404 }); return r; }, true],
     ["GET", /^\/api\/integrations$/, async () => integrations.list()],
-    ["POST", /^\/api\/integrations$/, async (req) => integrations.add(await body(req)), true],
+    ["POST", /^\/api\/integrations$/, async (req) => { const b = await body(req); return b.connector || b.method || b.bodyTemplate || b.headers ? integrations.addConnector(b) : integrations.add(b); }, true],
+    ["POST", /^\/api\/integrations\/([\w-]+)\/test$/, async (req, m) => {
+      const i = store.listIntegrations().find(x => x.id === m[1]); if (!i) throw Object.assign(new Error("Integration not found"), { status: 404 });
+      const evt = { id: "test", type: "package", at: new Date().toISOString(), data: { id: "PKG-TEST", keyword: "pizza near me", business: { name: "Test Pizzeria", owner: "Test Owner" }, score: 4 } };
+      if (i.connector) return integrations.callConnector(i, evt);
+      if (i.url) return integrations.deliver(i.url, evt);
+      return { ok: true, status: "built-in integrations are tested by their own events" };
+    }, true],
+    ["GET", /^\/api\/plugins$/, async () => plugins.list()],
+    ["POST", /^\/api\/extract$/, async (req) => { const b = await body(req); return { matches: extractKeywords(String(b.text || "").slice(0, 2000), store.getConfig().keywords) }; }],
+    ["GET", /^\/api\/devices$/, async () => devices.list(), true],
+    ["POST", /^\/api\/devices$/, async (req) => { if (!appKeyOk(req)) throw Object.assign(new Error("Missing or wrong X-App-Key."), { status: 401 }); return devices.register(await body(req)); }],
+    ["POST", /^\/api\/devices\/([\w-]+)\/events$/, async (req, m) => { const b = await body(req); const list = Array.isArray(b.events) ? b.events.slice(0, 100) : [b]; const out = []; for (const e of list) out.push(await devices.event(m[1], req.headers["x-device-token"], e)); return Array.isArray(b.events) ? { results: out } : out[0]; }],
+    ["DELETE", /^\/api\/devices\/([\w-]+)$/, async (req, m) => { if (req.headers["x-device-token"]) return devices.optOut(m[1], req.headers["x-device-token"]); if (!authed(req)) throw Object.assign(new Error("Send the device token or the API key."), { status: 401 }); return { deleted: devices.remove(m[1]) }; }],
     ["PATCH", /^\/api\/integrations\/([\w-]+)$/, async (req, m) => { const r = integrations.toggle(m[1], (await body(req)).on); if (!r) throw Object.assign(new Error("Integration not found"), { status: 404 }); return r; }, true],
     ["DELETE", /^\/api\/integrations\/([\w-]+)$/, async (req, m) => ({ deleted: integrations.remove(m[1]) }), true],
     ["POST", /^\/api\/simulator$/, async (req) => { setSim(!!(await body(req)).on); return { simulate: !!sim }; }, true],
@@ -109,10 +130,11 @@ export function createApp(config, deps = {}) {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
       return res.end(await readFile(path.join(ROOT, "index.html")));
     }
+    if (req.method === "GET" && (url.pathname === "/sdk.js" || url.pathname === "/prospect-sdk.js")) { res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=300", ...cors }); return res.end(await readFile(path.join(ROOT, "sdk", "prospect-sdk.js"))); }
     if (req.method === "GET" && url.pathname === "/openapi.yaml") { res.writeHead(200, { "Content-Type": "text/yaml", ...cors }); return res.end(await readFile(path.join(ROOT, "openapi.yaml"))); }
     send(res, 404, { error: "Not found" });
   }
 
   const server = http.createServer((req, res) => handler(req, res).catch(e => fail(res, e)));
-  return { server, bus, store, agent, integrations, close() { setSim(false); agent.stop(); for (const c of clients) c.end(); return new Promise(r => server.close(r)); } };
+  return { server, bus, store, agent, integrations, devices, ready, close() { setSim(false); agent.stop(); plugins.stop(); for (const c of clients) c.end(); return new Promise(r => server.close(r)); } };
 }

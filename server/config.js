@@ -14,6 +14,8 @@ export const config = {
   sequenceDayMs: num(env.SEQUENCE_DAY_MS, 86_400_000), // shrink to e.g. 5000 for demos
   rateLimit: { perMinute: num(env.RATE_LIMIT_PER_MIN, 600) },
   webhookSecret: env.WEBHOOK_SECRET || "",
+  deviceAppKey: env.DEVICE_APP_KEY || "",          // when set, apps must send X-App-Key to register devices
+  pluginsDir: env.PLUGINS_DIR ?? "plugins",
   keys: {
     googleMaps: env.GOOGLE_MAPS_API_KEY || "",
     sendgrid: env.SENDGRID_API_KEY || "",
@@ -27,6 +29,16 @@ export const config = {
     whatsappToken: env.WHATSAPP_TOKEN || "",
     lob: env.LOB_API_KEY || "",
     hubspot: env.HUBSPOT_TOKEN || "",
-    slackWebhook: env.SLACK_WEBHOOK_URL || ""
+    slackWebhook: env.SLACK_WEBHOOK_URL || "",
+    messengerPageToken: env.MESSENGER_PAGE_TOKEN || "",
+    tvAdsUrl: env.TV_ADS_URL || "",
+    tvAdsKey: env.TV_ADS_KEY || "",
+    googleAds: {
+      accessToken: env.GOOGLE_ADS_ACCESS_TOKEN || "",
+      developerToken: env.GOOGLE_ADS_DEVELOPER_TOKEN || "",
+      customerId: env.GOOGLE_ADS_CUSTOMER_ID || "",
+      loginCustomerId: env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || "",
+      userListId: env.GOOGLE_ADS_USER_LIST_ID || ""
+    }
   }
 };

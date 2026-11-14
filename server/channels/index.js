@@ -69,6 +69,36 @@ export function createChannels(k) {
         body: JSON.stringify({ to: address, front: `<html><body><h1>${xmlEsc(body.slice(0, 80))}</h1></body></html>`, back: `<html><body>${xmlEsc(body)}</body></html>` })
       }));
     },
+    // Facebook Messenger: needs a Page access token and the business's page-scoped id (PSID) from a prior conversation.
+    async messenger({ psid, body }) {
+      if (!k.messengerPageToken) return dry("MESSENGER_PAGE_TOKEN not set");
+      if (!psid) return dry("no Messenger recipient id on file");
+      return ok(await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${encodeURIComponent(k.messengerPageToken)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient: { id: psid }, messaging_type: "MESSAGE_TAG", tag: "ACCOUNT_UPDATE", message: { text: body } })
+      }));
+    },
+    // YouTube ads: adds the hashed contact to a Google Ads Customer Match list that your YouTube campaign targets.
+    async youtube({ email, phone }) {
+      const g = k.googleAds || {};
+      if (!g.accessToken || !g.developerToken || !g.customerId || !g.userListId) return dry("Google Ads keys for YouTube not set");
+      if (!email && !phone) return dry("no hashed identifier available");
+      const base = `https://googleads.googleapis.com/v17/customers/${g.customerId}`;
+      const headers = { Authorization: `Bearer ${g.accessToken}`, "developer-token": g.developerToken, "Content-Type": "application/json", ...(g.loginCustomerId ? { "login-customer-id": g.loginCustomerId } : {}) };
+      const job = await (await fetch(`${base}/offlineUserDataJobs:create`, { method: "POST", headers, body: JSON.stringify({ job: { type: "CUSTOMER_MATCH_USER_LIST", customerMatchUserListMetadata: { userList: `customers/${g.customerId}/userLists/${g.userListId}` } } }) })).json();
+      if (!job.resourceName) throw new Error("Google Ads job not created: " + JSON.stringify(job).slice(0, 200));
+      const ids = []; if (email) ids.push({ hashedEmail: sha256(email) }); if (phone) ids.push({ hashedPhoneNumber: sha256("+" + phone.replace(/\D/g, "")) });
+      await fetch(`https://googleads.googleapis.com/v17/${job.resourceName}:addOperations`, { method: "POST", headers, body: JSON.stringify({ operations: [{ create: { userIdentifiers: ids } }] }) });
+      return ok(await fetch(`https://googleads.googleapis.com/v17/${job.resourceName}:run`, { method: "POST", headers, body: "{}" }));
+    },
+    // TV / connected-TV ads: posts the spot brief to your programmatic or station partner.
+    async tv({ pkg, script }) {
+      if (!k.tvAdsUrl) return dry("TV_ADS_URL not set (your CTV or station partner endpoint)");
+      return ok(await fetch(k.tvAdsUrl, {
+        method: "POST", headers: { "Content-Type": "application/json", ...(k.tvAdsKey ? { Authorization: `Bearer ${k.tvAdsKey}` } : {}) },
+        body: JSON.stringify({ advertiser: pkg.business.name, keyword: pkg.keyword, script, lengthSec: 15, geo: { lat: pkg.lat, lng: pkg.lng, radiusMi: 5 } })
+      }));
+    },
     async gads() { return dry("Google Ads display runs from the client's account after signup"); },
     async report() { return { status: "sent", note: "report generated" }; },
     async form() { return { status: "sent", note: "intake form link generated" }; }

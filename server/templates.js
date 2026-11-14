@@ -4,7 +4,10 @@ export const DEFAULT_TEMPLATES = {
   sms: "Hi {{owner_name}}, this is Hydron Culture. {{search_count}} locals searched \"{{keyword}}\" near {{business_name}} this week. Want the free report on where they went? Reply YES. Reply STOP to opt out.",
   call: "Hi, is this {{owner_name}}? I'm calling from Hydron Culture about {{business_name}}.\n\nThis week {{search_count}} people within {{radius}} miles searched \"{{keyword}}\". Most picked {{competitor}}. I noticed {{gap}}.\n\nCould I take 10 minutes Thursday to show you the report?",
   voice: "Hi {{owner_name}}, it's Hydron Culture. {{search_count}} people near {{business_name}} searched \"{{keyword}}\" this week and most went to {{competitor}}. I have a free report for you. Call or text me back at this number.",
-  ad: "Looking for {{keyword}}? {{business_name}} is {{radius}} miles away. Order today."
+  ad: "Looking for {{keyword}}? {{business_name}} is {{radius}} miles away. Order today.",
+  messenger: "Hi {{owner_name}}! Hydron Culture here. {{search_count}} people near {{business_name}} searched \"{{keyword}}\" this week, and most went to {{competitor}}. Can I send you the free report?",
+  youtube: "[0-3s] Hungry? Searching \"{{keyword}}\"?\n[3-10s] {{business_name}} is just {{radius}} miles away.\n[10-15s] Tap to order or get directions.",
+  tv: "15s local spot: \"Craving {{keyword}}? {{business_name}} has you covered, just {{radius}} miles away in {{location}}. Visit today.\""
 };
 
 export const fill = (tpl, vars) => String(tpl).replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? String(vars[k]) : m));

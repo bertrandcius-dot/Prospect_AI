@@ -4,6 +4,8 @@ WORKDIR /app
 ENV NODE_ENV=production PORT=8787
 COPY package.json ./
 COPY server ./server
+COPY sdk ./sdk
+COPY plugins ./plugins
 COPY index.html openapi.yaml ./
 USER node
 EXPOSE 8787
