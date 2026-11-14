@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>ProspectAI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: command-center — feature menus on both flanks, live geofence map in the middle; stacks map-first on phones */
+:root{
+  --bg:#EEF1F6; --panel:#FFFFFF; --panel-2:#F6F8FB; --line:#DCE1EA; --fg:#141A2A; --muted:#5B6478;
+  --accent:#C26A00; --accent-ink:#FFFFFF; --accent-soft:rgba(194,106,0,.12);
+  --good:#178A4C; --warn:#B7791F; --bad:#C53030;
+  --map-land:#E4E8EF; --map-block:#D9DEE7; --map-road:#FFFFFF; --map-major:#F7E3C4; --map-water:#BFD3EA; --map-park:#CFE3D2; --map-label:rgba(20,26,42,.35);
+  --fence:#C26A00; --shadow:0 1px 2px rgba(20,26,42,.06),0 8px 24px rgba(20,26,42,.06);
+  --f-display:"Chakra Petch","Space Grotesk",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C111C; --panel:#131A28; --panel-2:#182133; --line:#243049; --fg:#E6EAF2; --muted:#8B95AB;
+  --accent:#FFB547; --accent-ink:#1A1204; --accent-soft:rgba(255,181,71,.14);
+  --good:#4ADE80; --warn:#FBBF24; --bad:#F87171;
+  --map-land:#101727; --map-block:#141D30; --map-road:#1E2940; --map-major:#2C3550; --map-water:#0D2238; --map-park:#11261E; --map-label:rgba(230,234,242,.28);
+  --fence:#FFB547; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C111C; --panel:#131A28; --panel-2:#182133; --line:#243049; --fg:#E6EAF2; --muted:#8B95AB;
+  --accent:#FFB547; --accent-ink:#1A1204; --accent-soft:rgba(255,181,71,.14);
+  --good:#4ADE80; --warn:#FBBF24; --bad:#F87171;
+  --map-land:#101727; --map-block:#141D30; --map-road:#1E2940; --map-major:#2C3550; --map-water:#0D2238; --map-park:#11261E; --map-label:rgba(230,234,242,.28);
+  --fence:#FFB547; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45;display:flex;flex-direction:column;overflow:hidden}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+.lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.brand h1{font-size:20px;letter-spacing:.02em}
+.brand h1 b{color:var(--accent)}
+.brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sel,.inp{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:7px 12px;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn svg{width:15px;height:15px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--good)}
+.live i{width:8px;height:8px;border-radius:50%;background:currentColor;animation:pulse 1.4s infinite}
+.live.off{color:var(--muted)} .live.off i{animation:none}
+@keyframes pulse{50%{opacity:.25}}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.kpi{background:var(--panel);padding:8px 14px;min-width:0}
+.kpi .v{font-family:var(--f-mono);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi .v.ac{color:var(--accent)}
+
+/* main grid */
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:310px minmax(0,1fr) 370px}
+.side{background:var(--panel);display:flex;flex-direction:column;min-height:0;min-width:0}
+.side.left{border-right:1px solid var(--line)} .side.right{border-left:1px solid var(--line)}
+.tabs{display:flex;gap:2px;padding:8px 8px 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;flex:none}
+.tab{border:0;background:none;padding:8px 10px;border-bottom:2px solid transparent;font-weight:600;font-size:13px;color:var(--muted);white-space:nowrap;display:flex;gap:6px;align-items:center}
+.tab svg{width:15px;height:15px}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.pane{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px;min-height:0}
+.group{display:flex;flex-direction:column;gap:8px}
+.hint{color:var(--muted);font-size:12.5px;margin:0}
+.row{display:flex;gap:8px;align-items:center}
+.row > .grow{flex:1;min-width:0}
+.list{display:flex;flex-direction:column;gap:6px}
+
+/* keyword rows */
+.kw{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2)}
+.kw.off{opacity:.5}
+.dot{width:11px;height:11px;border-radius:50%;flex:none;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 22%,transparent)}
+.kw .t{flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kw .t small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+.kw .c{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.icon-btn{border:0;background:none;padding:4px;border-radius:6px;color:var(--muted);display:inline-flex}
+.icon-btn:hover{color:var(--fg);background:var(--line)}
+.icon-btn svg{width:15px;height:15px}
+
+/* switch */
+.sw{position:relative;width:34px;height:20px;flex:none}
+.sw input{opacity:0;width:100%;height:100%;margin:0;position:absolute;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:20px;background:var(--line);transition:.2s}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--panel);transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw input:checked + span{background:var(--accent)}
+.sw input:checked + span::after{transform:translateX(14px)}
+.sw input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+
+.opt{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.opt:last-child{border-bottom:0}
+.opt .grow small{display:block;color:var(--muted);font-size:12px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+
+/* map */
+.mapwrap{position:relative;min-width:0;min-height:0;background:var(--map-land);overflow:hidden}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:manipulation}
+.ov{position:absolute;background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);font-size:12px}
+.legend{top:12px;left:12px;padding:10px 12px;max-width:min(240px,calc(100% - 24px));display:flex;flex-direction:column;gap:6px}
+.legend .items{display:flex;flex-wrap:wrap;gap:4px 10px}
+.legend .it{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.legend .src{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);border-top:1px solid var(--line);padding-top:6px}
+.legend .src svg{width:10px;height:10px;vertical-align:-1px;margin-right:3px}
+.mtools{top:12px;right:12px;display:flex;flex-direction:column;padding:4px;gap:2px}
+.mtools button{border:0;background:none;padding:7px;border-radius:7px;display:flex;color:var(--fg)}
+.mtools button:hover{background:var(--line)}
+.mtools svg{width:17px;height:17px}
+.coords{bottom:12px;left:12px;padding:7px 10px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.coords b{color:var(--fg);font-weight:600}
+.ticker{bottom:12px;right:12px;padding:7px 10px;max-width:min(320px,calc(100% - 24px));display:flex;gap:8px;align-items:center;overflow:hidden}
+.ticker span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tip{padding:10px 12px;width:230px;pointer-events:auto;z-index:3}
+.tip h3{font-size:14px;margin-bottom:4px}
+.tip dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0}
+.tip dt{color:var(--muted)} .tip dd{margin:0;font-family:var(--f-mono);font-size:11.5px}
+
+/* feed */
+.feed{display:flex;flex-direction:column;gap:6px}
+.fi{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);animation:in .35s ease-out}
+.fi .k{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.fi .m{grid-column:2/4;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.fi time{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.fi.out{opacity:.55}
+@keyframes in{from{transform:translateY(-6px);opacity:0}}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.good{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)}
+.pill.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent);background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.pill.ac{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:var(--accent-soft)}
+
+/* packages */
+.pkg{border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:10px 12px;display:flex;flex-direction:column;gap:8px;animation:in .35s ease-out;text-align:left;width:100%}
+.pkg:hover{border-color:var(--accent)}
+.pkg .hd{display:flex;gap:8px;align-items:flex-start}
+.pkg .hd > div{flex:1;min-width:0}
+.pkg .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pkg .sub{color:var(--muted);font-size:12px}
+.score{font-family:var(--f-mono);font-weight:600;font-size:12px;padding:2px 6px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}
+.chs{display:flex;flex-wrap:wrap;gap:4px}
+.ch{font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid var(--line);color:var(--muted);display:inline-flex;gap:4px;align-items:center}
+.ch.sent{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.ch.q::before{content:"";width:6px;height:6px;border-radius:50%;border:1.5px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+.ch.sent::before{content:"✓";font-size:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* agent pipeline */
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.stg{text-align:center;padding:8px 2px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);font-size:11px;color:var(--muted)}
+.stg b{display:block;font-family:var(--f-mono);font-size:15px;color:var(--fg)}
+.stg.hot{border-color:var(--accent);color:var(--accent)}
+.chan-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chan{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);font-size:12.5px}
+.chan .grow{flex:1;min-width:0}
+textarea.inp{width:100%;resize:vertical;min-height:70px;font-family:var(--f-mono);font-size:12px;line-height:1.5}
+.inp.full{width:100%}
+
+/* sequence */
+.seq{display:flex;flex-direction:column;position:relative;padding-left:18px}
+.seq::before{content:"";position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.step{position:relative;padding:6px 0 10px}
+.step::before{content:"";position:absolute;left:-17px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--panel);border:2px solid var(--accent)}
+.step.cut{opacity:.4}
+.step.cut::before{border-color:var(--muted)}
+.step .d{font-family:var(--f-mono);font-size:11px;color:var(--accent);font-weight:600}
+.step .n{font-weight:600}
+.step .x{color:var(--muted);font-size:12px}
+
+/* bridge */
+.bridge{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);text-align:center}
+.bridge .node{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px}
+.bridge .node b{font-family:var(--f-mono);font-size:18px}
+.bridge .node svg{width:26px;height:26px;color:var(--accent)}
+.bridge .arr{display:flex;flex-direction:column;gap:6px;color:var(--muted)}
+.bridge .arr svg{width:46px;height:12px}
+.bridge.on .arr{color:var(--accent)}
+.bridge.on .arr svg path{stroke-dasharray:4 4;animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-16}}
+.log{font-family:var(--f-mono);font-size:11.5px;display:flex;flex-direction:column;gap:3px;max-height:220px;overflow:auto;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log .t{color:var(--muted)}
+
+/* integrations */
+.ints{display:flex;flex-direction:column;gap:6px}
+.int{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2)}
+.int .lg{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:12px;color:#fff;flex:none}
+.int .grow{flex:1;min-width:0}
+.int .grow b{display:block;font-size:13px}
+.int .grow small{display:block;color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat{margin-top:6px}
+pre.code{margin:0;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--f-mono);font-size:11.5px;overflow-x:auto;line-height:1.5}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(8,12,20,.55);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);width:min(760px,100%);max-height:calc(100% - 8px);display:flex;flex-direction:column;overflow:hidden}
+.modal .mh{display:flex;gap:12px;align-items:flex-start;padding:16px 18px;border-bottom:1px solid var(--line)}
+.modal .mh > div{flex:1;min-width:0}
+.modal .mh h2{font-size:20px}
+.modal .mb{overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.crit{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
+.crit div{padding:8px 10px;border-radius:8px;border:1px solid var(--line);font-size:12px;background:var(--panel-2)}
+.crit div b{display:block;font-size:12.5px}
+.crit .f b{color:var(--bad)} .crit .p b{color:var(--good)}
+.prev{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:14px;white-space:pre-wrap;font-size:13.5px;line-height:1.55}
+.prev .subj{font-weight:600;display:block;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.adcard{max-width:340px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+.adcard .img{height:150px;display:grid;place-items:center;font-family:var(--f-display);font-size:24px;font-weight:700;color:#fff;text-align:center;padding:12px}
+.adcard .bd{padding:10px 12px;font-size:13px}
+table.cmp{width:100%;border-collapse:collapse;font-size:12.5px}
+table.cmp th,table.cmp td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+table.cmp td.n{font-family:var(--f-mono);text-align:right} table.cmp th.n{text-align:right}
+.tblwrap{overflow-x:auto}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-weight:600;font-size:13px;z-index:30;box-shadow:var(--shadow)}
+
+/* responsive */
+@media (max-width:1180px){ .grid{grid-template-columns:270px minmax(0,1fr) 330px} .kpis{grid-template-columns:repeat(4,minmax(0,1fr))} .kpi:nth-child(n+5){display:none} }
+@media (max-width:900px){
+  body{overflow:auto;height:auto;min-height:100%}
+  .grid{display:flex;flex-direction:column}
+  .mapwrap{order:1;height:58vh;min-height:340px;flex:none}
+  .side.right{order:2;border:0;border-top:1px solid var(--line)}
+  .side.left{order:3;border:0;border-top:1px solid var(--line)}
+  .pane{overflow:visible;flex:none}
+  .kpis{grid-template-columns:repeat(4,minmax(0,1fr))} .kpi:nth-child(n+5){display:block}
+  .kpi{padding:7px 10px} .kpi .v{font-size:16px}
+  .top .ctl{width:100%} .top .ctl .sel{flex:1}
+  .tabs,.pane{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+  .ticker{display:none}
+}
+@media (max-width:520px){ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .kpi:nth-child(n+7){display:none} .legend .src{display:none} .chan-grid{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="none" stroke="var(--accent)" stroke-width="2" opacity=".35"/><circle cx="17" cy="17" r="9" fill="none" stroke="var(--accent)" stroke-width="2" opacity=".6"/><circle cx="17" cy="17" r="3.5" fill="var(--accent)"/><path d="M17 17 L29 8" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>
+    <div><h1>Prospect<b>AI</b></h1><small>Hydron Culture · signal-to-lead engine</small></div>
+  </div>
+  <div class="ctl">
+    <span class="live" id="liveState"><i></i><span id="liveTxt">Live</span></span>
+    <select class="sel" id="locSel" aria-label="Target location"></select>
+    <button class="btn" id="runBtn" aria-label="Pause signals"><svg viewBox="0 0 24 24" fill="currentColor" id="runIco"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg><span id="runTxt">Pause</span></button>
+    <button class="btn" id="themeBtn" aria-label="Toggle light or dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+  </div>
+</header>
+
+<section class="kpis" aria-label="Pipeline totals">
+  <div class="kpi"><div class="lbl">Search signals</div><div class="v" id="k-sig">0</div></div>
+  <div class="kpi"><div class="lbl">In geofence</div><div class="v" id="k-in">0</div></div>
+  <div class="kpi"><div class="lbl">Qualified leads</div><div class="v" id="k-q">0</div></div>
+  <div class="kpi"><div class="lbl">Packages sent</div><div class="v" id="k-p">0</div></div>
+  <div class="kpi"><div class="lbl">Replies</div><div class="v" id="k-r">0</div></div>
+  <div class="kpi"><div class="lbl">Calls booked</div><div class="v" id="k-b">0</div></div>
+  <div class="kpi"><div class="lbl">Pipeline MRR</div><div class="v ac" id="k-m">$0</div></div>
+</section>
+
+<main class="grid">
+  <!-- LEFT: targeting features -->
+  <aside class="side left" aria-label="Targeting">
+    <div class="tabs" role="tablist" data-group="L">
+      <button class="tab" role="tab" data-pane="p-kw" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Keywords</button>
+      <button class="tab" role="tab" data-pane="p-geo" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/><circle cx="12" cy="12" r="2"/></svg>Geofence</button>
+      <button class="tab" role="tab" data-pane="p-qual" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Qualify</button>
+      <button class="tab" role="tab" data-pane="p-seq" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4v16M5 6h10l-2 3 2 3H5"/></svg>Sequence</button>
+    </div>
+
+    <div class="pane" id="p-kw">
+      <div class="group">
+        <div class="lbl">Keyword triggers</div>
+        <p class="hint">When someone inside the geofence searches one of these terms, the signal blinks on the map and goes to the Ad Engine Agent.</p>
+        <form class="row" id="kwForm" style="flex-wrap:wrap">
+          <input class="inp grow" style="flex-basis:100%" id="kwInput" placeholder="e.g. catering near me" maxlength="40" aria-label="New keyword">
+          <select class="sel" id="kwCat" aria-label="Business category"><option>Restaurant</option><option>Home services</option><option>Beauty</option><option>Health</option><option>Retail</option></select>
+          <button class="btn pri" type="submit">Add</button>
+        </form>
+      </div>
+      <div class="list" id="kwList"></div>
+      <div class="group">
+        <div class="lbl">Signal sources</div>
+        <div id="srcList"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p-geo" hidden>
+      <div class="group">
+        <div class="lbl">Fence center</div>
+        <p class="hint">Tap anywhere on the map to move the fence. Signals outside it are logged but never reach the agent.</p>
+        <div class="coords mono" style="position:static;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel-2)" id="fenceCoords"></div>
+      </div>
+      <div class="group">
+        <div class="row"><span class="lbl grow">Radius</span><span class="mono" id="radVal"></span></div>
+        <input type="range" id="radius" min="0.5" max="5" step="0.25" aria-label="Geofence radius in miles">
+      </div>
+      <div class="group">
+        <div class="row"><span class="lbl grow">Search volume (simulated)</span><span class="mono" id="rateVal"></span></div>
+        <input type="range" id="rate" min="6" max="120" step="6" aria-label="Signals per minute">
+      </div>
+      <div class="group">
+        <div class="lbl">Custom location</div>
+        <form id="customLoc" class="list">
+          <input class="inp full" id="cl-name" placeholder="Name, e.g. Newark, NJ" maxlength="40" aria-label="Location name">
+          <div class="row"><input class="inp grow" id="cl-lat" placeholder="Lat 40.7357" inputmode="decimal" aria-label="Latitude"><input class="inp grow" id="cl-lng" placeholder="Lng -74.1724" inputmode="decimal" aria-label="Longitude"></div>
+          <button class="btn" type="submit">Target this location</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="pane" id="p-qual" hidden>
+      <div class="group">
+        <div class="lbl">Weak online presence criteria</div>
+        <p class="hint">Each business near a signal is scored. Failing enough checks makes it a qualified lead. Everyone else gets the monitoring and maintenance offer.</p>
+        <div id="critList"></div>
+      </div>
+      <div class="group">
+        <div class="row"><span class="lbl grow">Qualify at</span><span class="mono" id="thrVal"></span></div>
+        <input type="range" id="thr" min="1" max="5" step="1" aria-label="Failed checks needed to qualify">
+      </div>
+    </div>
+
+    <div class="pane" id="p-seq" hidden>
+      <div class="opt" style="border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--panel-2)">
+        <div class="grow"><b>MVP mode</b><small>Ship the core loop first: Day 1 email, Day 3 SMS, Day 7 call reminder.</small></div>
+        <label class="sw"><input type="checkbox" id="mvp" aria-label="MVP mode"><span></span></label>
+      </div>
+      <div class="lbl">Follow-up timeline</div>
+      <div class="seq" id="seqList"></div>
+      <div class="group">
+        <div class="row"><span class="lbl grow">Retry cycles (14-day recycle)</span><span class="mono" id="cycVal"></span></div>
+        <input type="range" id="cycles" min="1" max="3" step="1" aria-label="Retry cycles">
+        <p class="hint">No reply after the last touch: the prospect is recycled with fresh competitor data.</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER: map -->
+  <section class="mapwrap" aria-label="Live signal map">
+    <canvas id="map" aria-label="Map of search signals inside the geofence" role="img"></canvas>
+    <div class="ov legend" id="legend"></div>
+    <div class="ov mtools">
+      <button id="recenter" aria-label="Recenter geofence"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+      <button id="burst" aria-label="Simulate a search burst"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button>
+      <button id="clearMap" aria-label="Clear signals from map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+    </div>
+    <div class="ov coords" id="coords"></div>
+    <div class="ov ticker" id="ticker"><span class="pill ac">Agent</span><span id="tickTxt">Waiting for the first signal…</span></div>
+    <div class="ov tip" id="tip" hidden></div>
+  </section>
+
+  <!-- RIGHT: engine features -->
+  <aside class="side right" aria-label="Engine">
+    <div class="tabs" role="tablist" data-group="R">
+      <button class="tab" role="tab" data-pane="p-feed" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h3l3-8 4 16 3-8h3"/></svg>Signals</button>
+      <button class="tab" role="tab" data-pane="p-agent" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>Ad Engine</button>
+      <button class="tab" role="tab" data-pane="p-bridge" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 11a6 6 0 0 0 12 0M12 17v4"/></svg>Pixel ↔ Voice</button>
+      <button class="tab" role="tab" data-pane="p-int" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/></svg>Integrations</button>
+    </div>
+
+    <div class="pane" id="p-feed">
+      <div class="row"><span class="lbl grow">Live keyword signals</span><span class="pill" id="feedCount">0</span></div>
+      <div class="feed" id="feed"></div>
+    </div>
+
+    <div class="pane" id="p-agent" hidden>
+      <div class="group">
+        <div class="lbl">Agent pipeline</div>
+        <div class="pipe" id="pipe"></div>
+      </div>
+      <div class="group">
+        <div class="row"><span class="lbl grow">Outreach packages</span><span class="hint">Tap one to preview</span></div>
+        <div class="list" id="pkgList"></div>
+      </div>
+      <div class="group">
+        <div class="lbl">Package channels</div>
+        <div class="chan-grid" id="chanList"></div>
+      </div>
+      <div class="group">
+        <div class="lbl">Personalization templates</div>
+        <p class="hint">Variables: {{owner_name}} {{business_name}} {{keyword}} {{search_count}} {{radius}} {{rating}} {{competitor}} {{gap}}</p>
+        <select class="sel" id="tplSel" aria-label="Template to edit"><option value="emailSubject">Email subject</option><option value="email">Email body</option><option value="sms">SMS</option><option value="call">Cold call script</option><option value="voice">Voice message</option><option value="ad">Social ad copy</option></select>
+        <textarea class="inp" id="tplText" rows="6" aria-label="Template text"></textarea>
+        <div class="row"><button class="btn sm" id="tplReset">Restore default</button><span class="hint" id="tplSaved"></span></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p-bridge" hidden>
+      <div class="opt" style="border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--panel-2)">
+        <div class="grow"><b>Two-way signal bridge</b><small>A voice search on a phone syncs the searcher to your social pixel audience. A pixel hit on social schedules a voice or call touch.</small></div>
+        <label class="sw"><input type="checkbox" id="bridgeOn" aria-label="Enable pixel and voice bridge"><span></span></label>
+      </div>
+      <div class="bridge" id="bridgeViz">
+        <div class="node"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Voice search<b id="bVoice">0</b></div>
+        <div class="arr"><svg viewBox="0 0 46 12"><path d="M2 4h40M36 1l5 3-5 3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><svg viewBox="0 0 46 12"><path d="M44 8H4M10 5 5 8l5 3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+        <div class="node"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="3"/></svg>Social pixel<b id="bPixel">0</b></div>
+      </div>
+      <div class="group">
+        <div class="lbl">Pixel destinations</div>
+        <div id="pixList"></div>
+      </div>
+      <div class="group">
+        <div class="lbl">Consent</div>
+        <p class="hint">Voice and pixel signals come only from users who opted in through the platform SDKs. SMS and calls honor TCPA quiet hours and STOP replies. Email includes a CAN-SPAM unsubscribe.</p>
+      </div>
+      <div class="group">
+        <div class="lbl">Bridge log</div>
+        <div class="log" id="bridgeLog"><div class="t">Bridge events appear here.</div></div>
+      </div>
+    </div>
+
+    <div class="pane" id="p-int" hidden>
+      <div class="group">
+        <div class="lbl">Connected tools</div>
+        <p class="hint">Every signal, qualified lead and package is published to the tools you connect.</p>
+        <div id="intList"></div>
+      </div>
+      <div class="group">
+        <div class="lbl">Add a custom integration</div>
+        <form id="intForm" class="list">
+          <input class="inp full" id="if-name" placeholder="Tool name, e.g. Airtable" maxlength="30" required aria-label="Tool name">
+          <input class="inp full" id="if-url" placeholder="Webhook URL https://…" type="url" required aria-label="Webhook URL">
+          <select class="sel" id="if-evt" aria-label="Events to send"><option value="all">All events</option><option value="package">Packages only</option><option value="lead">Qualified leads only</option><option value="signal">Signals only</option></select>
+          <button class="btn pri" type="submit">Add integration</button>
+        </form>
+      </div>
+      <div class="group">
+        <div class="lbl">Developer API</div>
+        <pre class="code">// Push a real signal from any tool
+ProspectAI.pushSignal({
+  keyword: "pizza near me",
+  lat: 40.6782, lng: -73.9442,
+  source: "search" // search | maps | voice | pixel
+});
+
+// Listen to the agent
+ProspectAI.on("package", pkg =&gt; console.log(pkg));
+
+// Register your own channel or CRM
+ProspectAI.registerIntegration({
+  name: "Airtable", category: "CRM",
+  onEvent: (type, data) =&gt; {}
+});</pre>
+      </div>
+      <div class="group">
+        <div class="lbl">Integration log</div>
+        <div class="log" id="intLog"><div class="t">Events sent to tools appear here.</div></div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div class="scrim" id="scrim" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="modal"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const el = (tag, attrs = {}, html = "") => { const e = document.createElement(tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (html) e.innerHTML = html; return e; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const fmt = n => n.toLocaleString("en-US");
+const clock = t => new Date(t).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+function mulberry(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const hash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const store = { get(k, d){ try { const v = localStorage.getItem("prospectai:" + k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v){ try { localStorage.setItem("prospectai:" + k, JSON.stringify(v)); } catch {} } };
+let toastT; function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
+
+/* ---------- data ---------- */
+const PALETTE = ["#FF5A5F","#2EC4B6","#F59E0B","#7C83FD","#38BDF8","#F72585","#22C55E","#A855F7","#FB7185","#14B8A6"];
+const LOCS = [
+  {name:"Brooklyn, NY", lat:40.6782, lng:-73.9442, hoods:["Williamsburg","Bushwick","Bed-Stuy","Crown Heights","Park Slope","Flatbush"]},
+  {name:"Miami, FL", lat:25.7617, lng:-80.1918, hoods:["Little Haiti","Wynwood","Edgewater","Overtown","Little Havana","Brickell"]},
+  {name:"Atlanta, GA", lat:33.7490, lng:-84.3880, hoods:["Buckhead","Midtown","Old Fourth Ward","Inman Park","West End","Grant Park"]},
+  {name:"Houston, TX", lat:29.7604, lng:-95.3698, hoods:["The Heights","Montrose","Midtown","EaDo","Third Ward","Museum District"]},
+  {name:"Chicago, IL", lat:41.8781, lng:-87.6298, hoods:["Logan Square","Wicker Park","West Loop","Pilsen","Bronzeville","Hyde Park"]}
+];
+const DEFAULT_KW = [
+  {term:"pizza near me", cat:"Restaurant"}, {term:"best tacos", cat:"Restaurant"}, {term:"vegan brunch", cat:"Restaurant"},
+  {term:"caribbean food delivery", cat:"Restaurant"}, {term:"emergency plumber", cat:"Home services"}, {term:"hair salon open now", cat:"Beauty"}
+].map((k, i) => ({...k, color: PALETTE[i], on: true, count: 0}));
+const SOURCES = [
+  {id:"search", name:"Google Search Console", note:"Keyword impressions by location", w:50},
+  {id:"maps", name:"Google Maps", note:"Map searches and direction requests", w:20},
+  {id:"voice", name:"Voice search", note:"Opt-in assistant queries on phones", w:15},
+  {id:"pixel", name:"Social pixel", note:"Meta / TikTok pixel keyword hits", w:15}
+];
+const CRITERIA = [
+  {id:"profile", name:"Google profile not optimized", short:"Profile"},
+  {id:"rating", name:"Rating below 4.0 or weak reviews", short:"Reviews"},
+  {id:"rank", name:"Ranks low in search and AI answers", short:"Ranking"},
+  {id:"dirs", name:"Missing from key directories", short:"Directories"},
+  {id:"ads", name:"No Google Ads campaign", short:"Ads"}
+];
+const CHANNELS = [
+  {id:"email", name:"Email", grp:"biz", on:true}, {id:"sms", name:"Text message", grp:"biz", on:true},
+  {id:"call", name:"Cold call", grp:"biz", on:true}, {id:"voice", name:"Voice message", grp:"biz", on:true},
+  {id:"social", name:"Social ads (pixel)", grp:"aud", on:true}, {id:"gads", name:"Google Ads display", grp:"aud", on:false},
+  {id:"report", name:"Competitor report", grp:"biz", on:true}, {id:"form", name:"Lead form", grp:"biz", on:true},
+  {id:"dm", name:"Social DM / WhatsApp", grp:"biz", on:false}, {id:"mail", name:"Mailed brochure", grp:"biz", on:false}
+];
+const SEQ_FULL = [
+  {d:1, n:"Personalized email + competitor report", x:"Email, intake form, SMS fire together", ch:"email", mvp:true},
+  {d:1, n:"Text message", x:"Short SMS with report link", ch:"sms", mvp:false},
+  {d:3, n:"SMS follow-up", x:"Nudge if the email was not opened", ch:"sms", mvp:true},
+  {d:4, n:"Social DM / WhatsApp", x:"Message on the business's social accounts", ch:"dm", mvp:false},
+  {d:5, n:"Retargeting ads", x:"Owner sees ads built from their own data", ch:"social", mvp:false},
+  {d:7, n:"Cold call", x:"Rep calls with the script below", ch:"call", mvp:true},
+  {d:8, n:"Second email", x:"New angle: what competitors gained this week", ch:"email", mvp:false},
+  {d:10, n:"Voice message drop", x:"Last touch before recycle", ch:"voice", mvp:false}
+];
+const INTEGRATIONS = [
+  {id:"gsc", name:"Google Search Console", cat:"Signals", c:"#4285F4", on:true, d:"Keyword impressions by query and city"},
+  {id:"gmaps", name:"Google Maps Places", cat:"Signals", c:"#34A853", on:true, d:"Business profiles, ratings, websites"},
+  {id:"gads", name:"Google Ads", cat:"Signals", c:"#FBBC04", on:false, d:"Ad presence check and display campaigns"},
+  {id:"meta", name:"Meta Pixel", cat:"Audience", c:"#1877F2", on:true, d:"Custom audiences on Facebook and Instagram"},
+  {id:"tiktok", name:"TikTok Pixel", cat:"Audience", c:"#111827", on:false, d:"Retarget searchers on TikTok"},
+  {id:"sendgrid", name:"SendGrid", cat:"Outreach", c:"#1A82E2", on:true, d:"Email delivery and open tracking"},
+  {id:"twilio", name:"Twilio", cat:"Outreach", c:"#F22F46", on:true, d:"SMS, cold calls and voicemail drops"},
+  {id:"wa", name:"WhatsApp Business", cat:"Outreach", c:"#25D366", on:false, d:"Direct messages to business accounts"},
+  {id:"lob", name:"Lob", cat:"Outreach", c:"#0B5CAD", on:false, d:"Printed brochures by mail"},
+  {id:"hubspot", name:"HubSpot", cat:"CRM", c:"#FF7A59", on:false, d:"Create contacts and deals"},
+  {id:"sf", name:"Salesforce", cat:"CRM", c:"#00A1E0", on:false, d:"Leads and opportunities"},
+  {id:"ghl", name:"GoHighLevel", cat:"CRM", c:"#155EEF", on:false, d:"Agency sub-accounts and pipelines"},
+  {id:"zapier", name:"Zapier", cat:"Automation", c:"#FF4F00", on:false, d:"Send any event to 6,000+ apps"},
+  {id:"make", name:"Make", cat:"Automation", c:"#6D00CC", on:false, d:"Visual automation scenarios"},
+  {id:"slack", name:"Slack", cat:"Automation", c:"#4A154B", on:true, d:"Post booked calls to a channel"}
+];
+const TPL_DEFAULT = {
+  emailSubject: "{{owner_name}}, {{search_count}} people searched \"{{keyword}}\" near {{business_name}}",
+  email: "Hi {{owner_name}},\n\nIn the last 7 days, {{search_count}} people within {{radius}} miles of {{business_name}} searched for \"{{keyword}}\". Most of them ended up at {{competitor}}.\n\nYour Google profile is rated {{rating}}, and {{gap}}.\n\nI put together a free report that shows where those customers went and the three changes that would bring them to you. Want me to send it, or walk you through it in 10 minutes this week?\n\nHydron Culture · ProspectAI",
+  sms: "Hi {{owner_name}}, this is Hydron Culture. {{search_count}} locals searched \"{{keyword}}\" near {{business_name}} this week. Want the free report on where they went? Reply YES. Reply STOP to opt out.",
+  call: "Hi, is this {{owner_name}}? I'm calling from Hydron Culture about {{business_name}}.\n\nThis week {{search_count}} people within {{radius}} miles searched \"{{keyword}}\". Most picked {{competitor}}. I noticed {{gap}}.\n\nCould I take 10 minutes Thursday to show you the report?",
+  voice: "Hi {{owner_name}}, it's Hydron Culture. {{search_count}} people near {{business_name}} searched \"{{keyword}}\" this week and most went to {{competitor}}. I have a free report for you. Call or text me back at this number.",
+  ad: "Looking for {{keyword}}? {{business_name}} is {{radius}} miles away. Order today."
+};
+
+/* ---------- state ---------- */
+const S = {
+  keywords: store.get("kw", DEFAULT_KW),
+  sources: store.get("src", {search:true, maps:true, voice:true, pixel:true}),
+  locIdx: store.get("loc", 0),
+  customLocs: store.get("customLocs", []),
+  fence: store.get("fence", {x:.5, y:.5, r:1.5}),
+  rate: store.get("rate", 36),
+  crit: store.get("crit", {profile:true, rating:true, rank:true, dirs:true, ads:true}),
+  thr: store.get("thr", 3),
+  channels: store.get("ch", Object.fromEntries(CHANNELS.map(c => [c.id, c.on]))),
+  mvp: store.get("mvp", false),
+  cycles: store.get("cyc", 3),
+  bridge: store.get("bridge", true),
+  tpl: Object.assign({}, TPL_DEFAULT, store.get("tpl", {})),
+  ints: store.get("ints", INTEGRATIONS.map(i => ({...i}))),
+  running: true,
+  signals: [], packages: [], businesses: new Map(),
+  stats: {sig:0, inside:0, qual:0, unq:0, pkg:0, rep:0, book:0, voice:0, pixel:0}
+};
+const allLocs = () => LOCS.concat(S.customLocs);
+const loc = () => allLocs()[S.locIdx] || LOCS[0];
+const MILES_ACROSS = 10;
+const listeners = {};
+function emit(type, data){
+  (listeners[type] || []).forEach(f => { try { f(data); } catch (e) { console.error(e); } });
+  window.dispatchEvent(new CustomEvent("prospect:" + type, {detail:data}));
+  routeToIntegrations(type, data);
+}
+
+/* ---------- business generator ---------- */
+const NAMES = {
+  "Restaurant": [["Mama","Tony's","Lakou","Bella","Golden","Casa","Island","Sunset","Urban","Kreyol"],["Kitchen","Pizzeria","Taqueria","Grill","Bistro","Cafe","Eats","Table","Spot","Plates"]],
+  "Home services": [["Rapid","Borough","AllPro","Neighborhood","Precision","Reliable","Metro","Fix-It"],["Plumbing","Pipe Co.","Drain Pros","Home Repair","Rooter","Services"]],
+  "Beauty": [["Crown","Glow","Silk","Velvet","Studio","Royal","Fresh","Luxe"],["Salon","Hair Bar","Beauty Lounge","Braids","Cuts","Spa"]],
+  "Health": [["Smile","Family","Bright","Care","Harbor","Park"],["Dental","Clinic","Health","Wellness","Chiropractic"]],
+  "Retail": [["Corner","Block","Market","Thread","Local","Uptown"],["Shop","Boutique","Goods","Supply","Market"]]
+};
+const OWNERS = ["Marie Joseph","Tony Russo","Ana Delgado","Kwame Mensah","Linh Tran","Jean-Baptiste Pierre","Fatima Ali","Carlos Rivera","Grace Kim","Dwayne Brooks","Sofia Rossi","Malik Johnson","Nadia Haddad","Luis Ortega","Esther Charles"];
+function makeBusinesses(kw){
+  const key = loc().name + "|" + kw.term;
+  if (S.businesses.has(key)) return S.businesses.get(key);
+  const r = mulberry(hash(key)); const parts = NAMES[kw.cat] || NAMES.Restaurant; const list = [];
+  for (let i = 0; i < 7; i++){
+    const rating = Math.round((2.9 + r() * 2.0) * 10) / 10;
+    const fails = { profile: r() < .55, rating: rating < 4.0, rank: r() < .6, dirs: r() < .55, ads: r() < .7 };
+    const a = Math.floor(r() * parts[0].length), b = Math.floor(r() * parts[1].length);
+    list.push({
+      id: key + "#" + i, name: parts[0][a] + " " + parts[1][(b + i) % parts[1].length], owner: OWNERS[Math.floor(r() * OWNERS.length)],
+      rating, reviews: Math.floor(12 + r() * 380), website: !fails.profile || r() < .5, dirs: fails.dirs ? Math.floor(r() * 3) : 3 + Math.floor(r() * 3),
+      rank: fails.rank ? 8 + Math.floor(r() * 25) : 1 + Math.floor(r() * 5), fails, demand: 0, pkg: null,
+      ax: (r() - .5) * .5, ay: (r() - .5) * .5
+    });
+  }
+  S.businesses.set(key, list); return list;
+}
+function scoreBiz(b){
+  const failed = CRITERIA.filter(c => S.crit[c.id] && b.fails[c.id]);
+  return { failed, n: failed.length, qualified: failed.length >= Math.min(S.thr, CRITERIA.filter(c => S.crit[c.id]).length || 1) };
+}
+function competitorOf(b){ const r = mulberry(hash(b.id + "c")); const p = NAMES.Restaurant; return { name: p[0][Math.floor(r()*p[0].length)] + " " + p[1][Math.floor(r()*p[1].length)] + " " + ["Express","House","Spot","Corner"][Math.floor(r()*4)], rating: (4.5 + r()*0.4).toFixed(1), reviews: Math.floor(400 + r()*900), rank: 1 + Math.floor(r()*2) }; }
+function gapText(b){
+  const g = [];
+  if (b.fails.profile) g.push(b.website ? "your Google profile is missing hours, photos and menu" : "there is no website on your Google profile");
+  if (b.fails.ads) g.push("you have no active Google Ads");
+  if (b.fails.dirs) g.push(`you are listed on only ${b.dirs} of 6 food directories`);
+  if (b.fails.rank) g.push(`you rank #${b.rank} for this search`);
+  if (b.fails.rating) g.push(`recent reviews are pulling your rating down`);
+  return g.slice(0, 2).join(" and ") || "your profile has room to grow";
+}
+function fill(tpl, b, kw){
+  const comp = competitorOf(b);
+  const vars = { owner_name: b.owner.split(" ")[0], business_name: b.name, keyword: kw.term, search_count: Math.max(b.demand * 9 + 23, 23), radius: S.fence.r, rating: b.rating.toFixed(1), competitor: comp.name, gap: gapText(b), location: loc().name };
+  return tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => k in vars ? vars[k] : m);
+}
+
+/* ---------- map rendering ---------- */
+const cv = $("#map"), ctx = cv.getContext("2d");
+let W = 0, H = 0, DPR = 1, base = null, T = {}, sweep = 0;
+function readTheme(){
+  const cs = getComputedStyle(document.documentElement);
+  ["map-land","map-block","map-road","map-major","map-water","map-park","map-label","fence","fg","muted","panel"].forEach(k => T[k] = cs.getPropertyValue("--" + k).trim());
+}
+function resize(){
+  const r = cv.getBoundingClientRect(); DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(1, r.width); H = Math.max(1, r.height);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  buildBase();
+}
+const ppm = () => W / MILES_ACROSS * (W < 520 ? 1.6 : 1);
+function buildBase(){
+  readTheme();
+  base = document.createElement("canvas"); base.width = cv.width; base.height = cv.height;
+  const g = base.getContext("2d"); g.scale(DPR, DPR);
+  const r = mulberry(hash(loc().name));
+  g.fillStyle = T["map-land"]; g.fillRect(0, 0, W, H);
+  const ang = (r() - .5) * .5, sp = 26 + r() * 10, diag = Math.hypot(W, H);
+  // blocks
+  g.save(); g.translate(W/2, H/2); g.rotate(ang);
+  for (let x = -diag/2; x < diag/2; x += sp) for (let y = -diag/2; y < diag/2; y += sp){
+    if (r() < .9){ g.fillStyle = r() < .07 ? T["map-park"] : T["map-block"]; g.fillRect(x + 3, y + 3, sp - 6, sp - 6); }
+  }
+  // parks (larger)
+  for (let i = 0; i < 3; i++){ g.fillStyle = T["map-park"]; const px = (r() - .5) * W * .9, py = (r() - .5) * H * .9; g.fillRect(Math.round(px/sp)*sp + 3, Math.round(py/sp)*sp + 3, sp*(2 + Math.floor(r()*3)) - 6, sp*(1 + Math.floor(r()*2)) - 6); }
+  // roads
+  let i = 0;
+  for (let x = -diag/2; x < diag/2; x += sp, i++){ g.strokeStyle = i % 5 === 0 ? T["map-major"] : T["map-road"]; g.lineWidth = i % 5 === 0 ? 5 : 2; g.beginPath(); g.moveTo(x, -diag/2); g.lineTo(x, diag/2); g.stroke(); }
+  i = 0;
+  for (let y = -diag/2; y < diag/2; y += sp, i++){ g.strokeStyle = i % 4 === 0 ? T["map-major"] : T["map-road"]; g.lineWidth = i % 4 === 0 ? 5 : 2; g.beginPath(); g.moveTo(-diag/2, y); g.lineTo(diag/2, y); g.stroke(); }
+  g.restore();
+  // diagonal avenue
+  g.strokeStyle = T["map-major"]; g.lineWidth = 6; g.beginPath(); g.moveTo(0, H * (.2 + r()*.3)); g.lineTo(W, H * (.5 + r()*.4)); g.stroke();
+  // water
+  g.fillStyle = T["map-water"]; g.beginPath();
+  const side = r() < .5; const w0 = 40 + r() * 60;
+  if (side){ g.moveTo(W - w0 - 60, 0); g.bezierCurveTo(W - w0, H*.3, W - w0 - 90, H*.6, W - w0 - 20, H); g.lineTo(W, H); g.lineTo(W, 0); }
+  else { g.moveTo(0, H - w0 - 40); g.bezierCurveTo(W*.3, H - w0 - 90, W*.6, H - w0, W, H - w0 - 50); g.lineTo(W, H); g.lineTo(0, H); }
+  g.closePath(); g.fill();
+  // neighborhood labels
+  g.fillStyle = T["map-label"]; g.font = `600 ${W < 520 ? 10 : 12}px "Chakra Petch", system-ui, sans-serif`; g.textAlign = "center";
+  (loc().hoods || ["North","Downtown","Eastside","Westside","Uptown","Harbor"]).forEach((h, k) => {
+    const cx = W * (.15 + (k % 3) * .35 + (r() - .5) * .08), cy = H * (.2 + Math.floor(k / 3) * .55 + (r() - .5) * .1);
+    g.save(); g.translate(cx, cy); g.fillText(h.toUpperCase().split("").join(String.fromCharCode(8202)), 0, 0); g.restore();
+  });
+}
+function shape(g, src, x, y, s){
+  g.beginPath();
+  if (src === "search"){ g.arc(x, y, s, 0, Math.PI * 2); }
+  else if (src === "maps"){ g.moveTo(x, y - s * 1.2); g.lineTo(x + s, y + s * .8); g.lineTo(x - s, y + s * .8); g.closePath(); }
+  else if (src === "voice"){ g.moveTo(x, y - s * 1.2); g.lineTo(x + s * 1.2, y); g.lineTo(x, y + s * 1.2); g.lineTo(x - s * 1.2, y); g.closePath(); }
+  else { g.rect(x - s * .9, y - s * .9, s * 1.8, s * 1.8); }
+}
+function draw(now){
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (base) ctx.drawImage(base, 0, 0);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const fx = S.fence.x * W, fy = S.fence.y * H, fr = S.fence.r * ppm();
+  // fence
+  ctx.save();
+  ctx.fillStyle = hexA(T.fence, .08); ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
+  if (S.running){
+    sweep = (sweep + 0.012) % (Math.PI * 2);
+    const grad = ctx.createConicGradient ? ctx.createConicGradient(sweep, fx, fy) : null;
+    if (grad){ grad.addColorStop(0, hexA(T.fence, .22)); grad.addColorStop(.12, hexA(T.fence, 0)); grad.addColorStop(1, hexA(T.fence, 0)); ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill(); }
+  }
+  ctx.setLineDash([7, 6]); ctx.lineWidth = 2; ctx.strokeStyle = T.fence; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]); ctx.fillStyle = T.fence; ctx.beginPath(); ctx.arc(fx, fy, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.textAlign = "center"; ctx.fillText(S.fence.r + " mi", fx, fy - fr - 8);
+  ctx.restore();
+  // business pins for packaged leads
+  S.packages.slice(0, 25).forEach(p => {
+    const bx = fx + p.biz.ax * 3.2 * fr, by = fy + p.biz.ay * 3.2 * fr;
+    p.bx = bx; p.by = by;
+    ctx.fillStyle = T.panel; ctx.strokeStyle = p.kw.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(bx, by, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = p.kw.color; ctx.beginPath(); ctx.arc(bx, by, 2.5, 0, Math.PI * 2); ctx.fill();
+  });
+  // signals
+  const life = 9000;
+  for (let i = S.signals.length - 1; i >= 0; i--){
+    const s = S.signals[i]; const age = now - s.t;
+    if (age > life){ S.signals.splice(i, 1); continue; }
+    const x = s.x * W, y = s.y * H, k = age / life;
+    const col = s.inside ? s.kw.color : T.muted;
+    ctx.globalAlpha = 1 - k * k;
+    if (s.inside){
+      for (let ring = 0; ring < 2; ring++){
+        const rk = ((age + ring * 700) % 1400) / 1400;
+        ctx.strokeStyle = hexA(col, (1 - rk) * .8); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 5 + rk * 22, 0, Math.PI * 2); ctx.stroke();
+      }
+      if (s.bridgeTo && age < 3000){ ctx.setLineDash([3, 4]); ctx.strokeStyle = hexA(T.fence, .7); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(s.bridgeTo.x * W, s.bridgeTo.y * H); ctx.stroke(); ctx.setLineDash([]); }
+      if (s.pkgLine && age < 2500 && s.pkgLine.bx){ ctx.strokeStyle = hexA(col, .55); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(s.pkgLine.bx, s.pkgLine.by); ctx.stroke(); }
+    }
+    const blink = s.inside ? (Math.sin(age / 120) > -0.2 ? 1 : .35) : .6;
+    ctx.globalAlpha *= blink;
+    ctx.fillStyle = col; shape(ctx, s.src, x, y, s.inside ? 5.5 : 3.5); ctx.fill();
+    ctx.globalAlpha = 1;
+    if (s.inside && age < 3200){
+      ctx.font = '600 11px "IBM Plex Sans", system-ui, sans-serif'; ctx.textAlign = "left";
+      const txt = s.kw.term; const tw = ctx.measureText(txt).width;
+      const lx = Math.min(x + 12, W - tw - 14), ly = y - 10;
+      ctx.globalAlpha = Math.min(1, (3200 - age) / 600);
+      ctx.fillStyle = hexA(T.panel, .92); roundRect(ctx, lx - 5, ly - 12, tw + 10, 17, 5); ctx.fill();
+      ctx.fillStyle = s.kw.color; ctx.fillRect(lx - 5, ly - 12, 2.5, 17);
+      ctx.fillStyle = T.fg; ctx.fillText(txt, lx, ly);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+function roundRect(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function hexA(c, a){
+  if (!c) return `rgba(128,128,128,${a})`;
+  if (c.startsWith("#")){ let h = c.slice(1); if (h.length === 3) h = h.split("").map(x => x + x).join(""); const n = parseInt(h, 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+  const m = c.match(/[\d.]+/g); return m ? `rgba(${m[0]},${m[1]},${m[2]},${a})` : c;
+}
+const toLatLng = (x, y) => { const L = loc(); const mi = MILES_ACROSS * W / (MILES_ACROSS * ppm()); const dxm = (x - .5) * mi, dym = (y - .5) * mi * H / W; return { lat: L.lat - dym / 69, lng: L.lng + dxm / (69 * Math.cos(L.lat * Math.PI / 180)) }; };
+const fromLatLng = (lat, lng) => { const L = loc(); const mi = MILES_ACROSS * W / (MILES_ACROSS * ppm()); return { x: .5 + (lng - L.lng) * 69 * Math.cos(L.lat * Math.PI / 180) / mi, y: .5 - (lat - L.lat) * 69 / (mi * H / W) }; };
+
+/* ---------- engine ---------- */
+let acc = 0, last = performance.now();
+function tick(now){
+  const dt = now - last; last = now;
+  if (S.running){ acc += dt * S.rate / 60000; while (acc >= 1){ acc -= 1; spawn(); } }
+  draw(now);
+  requestAnimationFrame(tick);
+}
+function weightedSource(){
+  const act = SOURCES.filter(s => S.sources[s.id]); if (!act.length) return null;
+  let t = Math.random() * act.reduce((a, s) => a + s.w, 0);
+  for (const s of act){ t -= s.w; if (t <= 0) return s.id; } return act[0].id;
+}
+function spawn(opts = {}){
+  const active = S.keywords.filter(k => k.on); if (!active.length) return;
+  const kw = opts.kw || pick(active); const src = opts.src || weightedSource(); if (!src) return;
+  let x, y;
+  if (opts.x != null){ x = opts.x; y = opts.y; }
+  else if (Math.random() < .68){ const rr = S.fence.r * ppm() * 1.25 * Math.sqrt(Math.random()), a = Math.random() * Math.PI * 2; x = S.fence.x + rr * Math.cos(a) / W; y = S.fence.y + rr * Math.sin(a) / H; }
+  else { x = rnd(.03, .97); y = rnd(.05, .95); }
+  x = Math.min(.99, Math.max(.01, x)); y = Math.min(.99, Math.max(.01, y));
+  const inside = Math.hypot((x - S.fence.x) * W, (y - S.fence.y) * H) <= S.fence.r * ppm();
+  const s = { id: Math.random().toString(36).slice(2, 9), kw, src, x, y, inside, t: performance.now(), wall: Date.now(), ...toLatLng(x, y) };
+  S.signals.push(s); if (S.signals.length > 260) S.signals.shift();
+  S.stats.sig++;
+  if (inside){ S.stats.inside++; kw.count++; }
+  addFeed(s);
+  emit("signal", publicSignal(s));
+  if (inside){
+    if (src === "voice") S.stats.voice++; if (src === "pixel") S.stats.pixel++;
+    if (S.bridge && (src === "voice" || src === "pixel")) bridgeEvent(s);
+    setTimeout(() => agentProcess(s), 500);
+  }
+  renderStats(); if (inside) renderKwCounts();
+}
+const publicSignal = s => ({ id: s.id, keyword: s.kw.term, source: s.src, lat: +s.lat.toFixed(5), lng: +s.lng.toFixed(5), insideFence: s.inside, at: new Date(s.wall).toISOString() });
+
+function agentProcess(s){
+  const list = makeBusinesses(s.kw); const b = pick(list); b.demand++;
+  if (b.pkg){ b.pkg.demand = b.demand; tickerSay(`+1 demand signal added to ${b.name}'s package`); s.pkgLine = b.pkg; renderPkgs(); return; }
+  const sc = scoreBiz(b);
+  if (!sc.qualified){
+    if (!b.monitor){ b.monitor = true; S.stats.unq++; tickerSay(`${b.name} has a strong profile. Sent to monitoring offer.`); renderPipe(); }
+    return;
+  }
+  S.stats.qual++;
+  emit("lead", { business: b.name, owner: b.owner, keyword: s.kw.term, failed: sc.failed.map(f => f.id), score: sc.n });
+  const chans = CHANNELS.filter(c => S.channels[c.id]).map(c => ({ ...c, st: "q" }));
+  const pkg = { id: "PKG-" + (1000 + S.packages.length + 1), biz: b, kw: s.kw, score: sc, chans, created: Date.now(), demand: b.demand, signal: s };
+  b.pkg = pkg; s.pkgLine = pkg;
+  S.packages.unshift(pkg); if (S.packages.length > 40) S.packages.pop();
+  tickerSay(`Built ${pkg.id} for ${b.name} (${sc.n}/5 weak signals)`);
+  chans.forEach((c, i) => setTimeout(() => {
+    c.st = "sent"; renderPkgs();
+    if (chans.every(x => x.st === "sent")){ S.stats.pkg++; renderStats(); emit("package", publicPkg(pkg)); maybeReply(pkg); }
+  }, 600 + i * 380 + Math.random() * 400));
+  renderPkgs(); renderStats(); renderPipe();
+}
+const publicPkg = p => ({ id: p.id, business: p.biz.name, owner: p.biz.owner, keyword: p.kw.term, channels: p.chans.map(c => c.id), score: p.score.n, location: loc().name });
+function maybeReply(p){
+  if (Math.random() < .22) setTimeout(() => {
+    p.replied = true; S.stats.rep++;
+    if (Math.random() < .5){ p.booked = true; S.stats.book++; tickerSay(`${p.biz.owner} booked a discovery call`); emit("booked", publicPkg(p)); }
+    else tickerSay(`${p.biz.owner} replied to ${p.id}`);
+    renderStats(); renderPkgs(); renderPipe();
+  }, 3000 + Math.random() * 7000);
+}
+function bridgeEvent(s){
+  const opp = s.src === "voice" ? "pixel" : "voice";
+  const near = S.signals.filter(o => o.inside && o.src === opp && o !== s).slice(-1)[0];
+  s.bridgeTo = near ? { x: near.x, y: near.y } : { x: S.fence.x, y: S.fence.y };
+  const pix = S.ints.filter(i => i.cat === "Audience" && i.on).map(i => i.name).join(" + ") || "no pixel connected";
+  const msg = s.src === "voice" ? `voice → pixel  "${s.kw.term}" searcher added to ${pix}` : `pixel → voice  "${s.kw.term}" hit scheduled a voice touch`;
+  logTo("#bridgeLog", msg); renderBridge();
+}
+
+/* ---------- integrations routing ---------- */
+const custom = [];
+function routeToIntegrations(type, data){
+  const map = { signal: ["Signals","Automation"], lead: ["CRM","Automation"], package: ["Outreach","CRM","Automation"], booked: ["CRM","Automation"] };
+  if (type === "signal" && !data.insideFence) return;
+  const targets = S.ints.filter(i => i.on && (map[type] || []).includes(i.cat) && (!i.evt || i.evt === "all" || i.evt === type));
+  if (type === "signal" && Math.random() > .25) return; // sample the busy signal stream in the log
+  targets.slice(0, 3).forEach(i => logTo("#intLog", `${type.padEnd(7)} → ${i.name}${i.url ? " (webhook)" : ""}  ${data.business || data.keyword || ""}`));
+  custom.forEach(c => { try { c.onEvent && c.onEvent(type, data); } catch (e) { console.error(e); } });
+}
+function logTo(sel, msg){
+  const box = $(sel); if (box.firstElementChild && box.firstElementChild.classList.contains("t") && box.children.length === 1) box.innerHTML = "";
+  const d = el("div", {}, `<span class="t">${clock(Date.now())}</span> ${esc(msg)}`); box.prepend(d);
+  while (box.children.length > 60) box.lastChild.remove();
+}
+
+/* ---------- render ---------- */
+const ICON_SRC = { search:'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>', maps:'<svg viewBox="0 0 10 10"><path d="M5 .5 9.5 9h-9z" fill="currentColor"/></svg>', voice:'<svg viewBox="0 0 10 10"><path d="M5 0 10 5 5 10 0 5z" fill="currentColor"/></svg>', pixel:'<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="currentColor"/></svg>' };
+const SRC_NAME = { search:"Search", maps:"Maps", voice:"Voice", pixel:"Pixel" };
+function renderStats(){
+  $("#k-sig").textContent = fmt(S.stats.sig); $("#k-in").textContent = fmt(S.stats.inside); $("#k-q").textContent = fmt(S.stats.qual);
+  $("#k-p").textContent = fmt(S.stats.pkg); $("#k-r").textContent = fmt(S.stats.rep); $("#k-b").textContent = fmt(S.stats.book);
+  $("#k-m").textContent = "$" + fmt(S.stats.book * 299);
+  $("#feedCount").textContent = fmt(S.stats.inside) + " in fence";
+}
+function renderLegend(){
+  const kws = S.keywords.filter(k => k.on);
+  $("#legend").innerHTML = `<div class="lbl">${esc(loc().name)} · ${kws.length} keywords</div><div class="items">${kws.map(k => `<span class="it"><span class="dot" style="background:${k.color};color:${k.color}"></span>${esc(k.term)}</span>`).join("")}</div>
+  <div class="src">${Object.keys(SRC_NAME).map(s => `<span>${ICON_SRC[s]}${SRC_NAME[s]}</span>`).join("")}</div>`;
+}
+function renderCoords(){
+  const c = toLatLng(S.fence.x, S.fence.y);
+  const t = `<b>${c.lat.toFixed(4)}</b>, <b>${c.lng.toFixed(4)}</b> · r ${S.fence.r} mi`;
+  $("#coords").innerHTML = t; $("#fenceCoords").innerHTML = `${esc(loc().name)}<br>${t}`;
+}
+function renderKw(){
+  const box = $("#kwList"); box.innerHTML = "";
+  S.keywords.forEach((k, i) => {
+    const r = el("div", { class: "kw" + (k.on ? "" : " off") });
+    r.innerHTML = `<span class="dot" style="background:${k.color};color:${k.color}"></span><span class="t">${esc(k.term)}<small>${esc(k.cat)}</small></span><span class="c" data-c="${i}">${fmt(k.count)}</span>
+      <label class="sw"><input type="checkbox" ${k.on ? "checked" : ""} aria-label="Track ${esc(k.term)}"><span></span></label>
+      <button class="icon-btn" aria-label="Remove ${esc(k.term)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
+    r.querySelector("input").onchange = e => { k.on = e.target.checked; r.classList.toggle("off", !k.on); save(); renderLegend(); };
+    r.querySelector("button").onclick = () => { S.keywords.splice(i, 1); save(); renderKw(); renderLegend(); };
+    box.append(r);
+  });
+}
+function renderKwCounts(){ document.querySelectorAll("[data-c]").forEach(n => { const k = S.keywords[+n.dataset.c]; if (k) n.textContent = fmt(k.count); }); }
+function renderSources(){
+  $("#srcList").innerHTML = SOURCES.map(s => `<div class="opt"><span style="color:var(--accent)">${ICON_SRC[s.id].replace("<svg", '<svg width="12" height="12"')}</span><div class="grow">${esc(s.name)}<small>${esc(s.note)}</small></div><label class="sw"><input type="checkbox" data-src="${s.id}" ${S.sources[s.id] ? "checked" : ""} aria-label="${esc(s.name)}"><span></span></label></div>`).join("");
+  $("#srcList").querySelectorAll("input").forEach(i => i.onchange = () => { S.sources[i.dataset.src] = i.checked; save(); });
+}
+function renderCrit(){
+  $("#critList").innerHTML = CRITERIA.map(c => `<div class="opt"><div class="grow">${esc(c.name)}</div><label class="sw"><input type="checkbox" data-crit="${c.id}" ${S.crit[c.id] ? "checked" : ""} aria-label="${esc(c.name)}"><span></span></label></div>`).join("");
+  $("#critList").querySelectorAll("input").forEach(i => i.onchange = () => { S.crit[i.dataset.crit] = i.checked; save(); });
+  $("#thr").value = S.thr; $("#thrVal").textContent = `${S.thr}+ failed checks`;
+}
+function renderChannels(){
+  $("#chanList").innerHTML = CHANNELS.map(c => `<label class="chan"><span class="grow">${esc(c.name)}<br><small class="hint">${c.grp === "aud" ? "Searcher audience" : "Business owner"}</small></span><span class="sw"><input type="checkbox" data-ch="${c.id}" ${S.channels[c.id] ? "checked" : ""} aria-label="${esc(c.name)}"><span></span></span></label>`).join("");
+  $("#chanList").querySelectorAll("input").forEach(i => i.onchange = () => { S.channels[i.dataset.ch] = i.checked; save(); });
+}
+function renderSeq(){
+  const steps = SEQ_FULL.map(s => ({ ...s, cut: S.mvp ? !s.mvp : !S.channels[s.ch] && s.ch !== "email" }));
+  const mvpSteps = [{d:1, n:"Personalized email", x:"With {{business_name}} and {{owner_name}}"}, {d:3, n:"Text message", x:"Same variables, short link to report"}, {d:7, n:"Call reminder", x:"Rep gets a task with the call script"}];
+  const list = S.mvp ? mvpSteps : steps;
+  $("#seqList").innerHTML = list.map(s => `<div class="step${s.cut ? " cut" : ""}"><div class="d">DAY ${s.d}</div><div class="n">${esc(s.n)}</div><div class="x">${esc(s.x)}${s.cut ? " · channel off" : ""}</div></div>`).join("") +
+    `<div class="step"><div class="d">DAY ${S.mvp ? 14 : 24}</div><div class="n">Recycle or convert</div><div class="x">Reply books a discovery call. Silence recycles the lead (cycle ${S.mvp ? 1 : S.cycles} max).</div></div>`;
+  $("#mvp").checked = S.mvp; $("#cycles").value = S.cycles; $("#cycVal").textContent = S.cycles + "×"; $("#cycles").disabled = S.mvp;
+}
+function renderPipe(){
+  const st = [["Detect", S.stats.inside], ["Qualify", S.stats.qual], ["Reach out", S.stats.pkg], ["Replied", S.stats.rep], ["Convert", S.stats.book]];
+  $("#pipe").innerHTML = st.map(([n, v], i) => `<div class="stg${i === 4 && v ? " hot" : ""}"><b>${fmt(v)}</b>${n}</div>`).join("");
+}
+let pkgRenderPending = false;
+function renderPkgs(){
+  if (pkgRenderPending) return; pkgRenderPending = true;
+  requestAnimationFrame(() => {
+    pkgRenderPending = false;
+    const box = $("#pkgList");
+    if (!S.packages.length){ box.innerHTML = `<p class="hint">No packages yet. The agent builds one as soon as a qualified business is found near a signal.</p>`; return; }
+    box.innerHTML = S.packages.slice(0, 12).map((p, i) => `<button class="pkg" data-p="${i}"><div class="hd"><span class="dot" style="background:${p.kw.color};color:${p.kw.color};margin-top:5px"></span><div><div class="nm">${esc(p.biz.name)}</div><div class="sub">${esc(p.biz.owner)} · "${esc(p.kw.term)}" · ${p.demand} signal${p.demand > 1 ? "s" : ""}</div></div><span class="score">${p.score.n}/5</span></div>
+      <div class="chs">${p.chans.map(c => `<span class="ch ${c.st}">${esc(c.name)}</span>`).join("")}${p.booked ? '<span class="pill good">Call booked</span>' : p.replied ? '<span class="pill ac">Replied</span>' : ""}</div></button>`).join("");
+    box.querySelectorAll(".pkg").forEach(b => b.onclick = () => openPkg(S.packages[+b.dataset.p]));
+  });
+}
+function addFeed(s){
+  const box = $("#feed");
+  const r = el("div", { class: "fi" + (s.inside ? "" : " out") });
+  r.innerHTML = `<span class="dot" style="background:${s.inside ? s.kw.color : "var(--muted)"};color:${s.inside ? s.kw.color : "transparent"}"></span><span class="k">${esc(s.kw.term)}</span><time>${clock(s.wall)}</time>
+    <span class="m">${SRC_NAME[s.src]} · ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)} · ${s.inside ? "sent to Ad Engine" : "outside fence"}</span>`;
+  box.prepend(r); while (box.children.length > 50) box.lastChild.remove();
+}
+function renderBridge(){ $("#bVoice").textContent = fmt(S.stats.voice); $("#bPixel").textContent = fmt(S.stats.pixel); $("#bridgeViz").classList.toggle("on", S.bridge); $("#bridgeOn").checked = S.bridge; }
+function renderPix(){
+  const px = S.ints.filter(i => i.cat === "Audience");
+  $("#pixList").innerHTML = px.map(i => `<div class="opt"><div class="grow">${esc(i.name)}<small>${esc(i.d)}</small></div><span class="pill ${i.on ? "good" : ""}">${i.on ? "Connected" : "Off"}</span></div>`).join("");
+}
+function renderInts(){
+  const cats = [...new Set(S.ints.map(i => i.cat))];
+  $("#intList").innerHTML = cats.map(c => `<div class="lbl cat">${esc(c)}</div><div class="ints">${S.ints.filter(i => i.cat === c).map(i => `<div class="int"><span class="lg" style="background:${i.c}">${esc(i.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2))}</span><div class="grow"><b>${esc(i.name)}</b><small>${esc(i.url || i.d)}</small></div><label class="sw"><input type="checkbox" data-int="${esc(i.id)}" ${i.on ? "checked" : ""} aria-label="Connect ${esc(i.name)}"><span></span></label></div>`).join("")}</div>`).join("");
+  $("#intList").querySelectorAll("input").forEach(inp => inp.onchange = () => { const it = S.ints.find(x => x.id === inp.dataset.int); it.on = inp.checked; save(); renderPix(); toast(`${it.name} ${it.on ? "connected" : "disconnected"}`); });
+}
+function tickerSay(t){ $("#tickTxt").textContent = t; }
+
+/* ---------- package modal ---------- */
+function openPkg(p){
+  const b = p.biz, kw = p.kw, comp = competitorOf(b), T2 = S.tpl;
+  const has = id => p.chans.some(c => c.id === id);
+  const views = [
+    has("email") && ["Email", `<div class="prev"><span class="subj">${esc(fill(T2.emailSubject, b, kw))}</span>${esc(fill(T2.email, b, kw))}</div>`],
+    has("sms") && ["SMS", `<div class="prev">${esc(fill(T2.sms, b, kw))}</div>`],
+    has("call") && ["Call script", `<div class="prev">${esc(fill(T2.call, b, kw))}</div>`],
+    has("voice") && ["Voice message", `<div class="prev">${esc(fill(T2.voice, b, kw))}</div>`],
+    has("social") && ["Social ad", `<div class="adcard"><div class="img" style="background:linear-gradient(135deg, ${kw.color}, ${hexA(kw.color, .55)})">${esc(b.name)}</div><div class="bd"><b>${esc(b.name)}</b> · Sponsored<br>${esc(fill(T2.ad, b, kw))}<br><span class="hint">Audience: ${p.demand * 9 + 23} people who searched "${esc(kw.term)}" in the fence (pixel + voice synced). Shown to the owner as a preview of the campaign.</span></div></div>`],
+    has("report") && ["Competitor report", `<div class="tblwrap"><table class="cmp"><thead><tr><th>Business</th><th class="n">Rating</th><th class="n">Reviews</th><th class="n">Rank</th><th class="n">Directories</th></tr></thead><tbody>
+      <tr><td>${esc(b.name)}</td><td class="n">${b.rating.toFixed(1)}</td><td class="n">${b.reviews}</td><td class="n">#${b.rank}</td><td class="n">${b.dirs}/6</td></tr>
+      <tr><td>${esc(comp.name)}</td><td class="n">${comp.rating}</td><td class="n">${comp.reviews}</td><td class="n">#${comp.rank}</td><td class="n">6/6</td></tr></tbody></table></div>`],
+    has("form") && ["Lead form", `<div class="prev">Prefilled intake form\n\nBusiness: ${esc(b.name)}\nOwner: ${esc(b.owner)}\nGoal: Get found for "${esc(kw.term)}"\n[ Book my free 10-minute review ]</div>`]
+  ].filter(Boolean);
+  const m = $("#modal");
+  m.innerHTML = `<div class="mh"><div><div class="lbl">${p.id} · ${esc(loc().name)}</div><h2 id="mTitle">${esc(b.name)}</h2><div class="hint">Owner ${esc(b.owner)} · triggered by "${esc(kw.term)}" · ${p.demand} demand signal${p.demand > 1 ? "s" : ""}</div></div><button class="icon-btn" id="mClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="mb">
+    <div class="group"><div class="row"><span class="lbl grow">Qualification · ${p.score.n} of 5 weak</span><span class="pill bad">Qualified lead</span></div>
+      <div class="crit">${CRITERIA.map(c => `<div class="${b.fails[c.id] ? "f" : "p"}"><b>${b.fails[c.id] ? "Weak" : "OK"}</b>${esc(c.short)}</div>`).join("")}</div></div>
+    <div class="group"><div class="lbl">Package contents</div><div class="tabs" role="tablist" style="padding:0">${views.map((v, i) => `<button class="tab" role="tab" data-v="${i}" aria-selected="${i === 0}">${v[0]}</button>`).join("")}</div><div id="mView">${views[0] ? views[0][1] : '<p class="hint">No channels enabled.</p>'}</div></div>
+  </div>`;
+  m.querySelectorAll("[data-v]").forEach(t => t.onclick = () => { m.querySelectorAll("[data-v]").forEach(x => x.setAttribute("aria-selected", x === t)); $("#mView").innerHTML = views[+t.dataset.v][1]; });
+  $("#mClose").onclick = closeModal; $("#scrim").hidden = false; $("#mClose").focus();
+}
+function closeModal(){ $("#scrim").hidden = true; }
+$("#scrim").onclick = e => { if (e.target.id === "scrim") closeModal(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape"){ closeModal(); $("#tip").hidden = true; } });
+
+/* ---------- controls ---------- */
+function save(){
+  store.set("kw", S.keywords); store.set("src", S.sources); store.set("loc", S.locIdx); store.set("customLocs", S.customLocs); store.set("fence", S.fence);
+  store.set("rate", S.rate); store.set("crit", S.crit); store.set("thr", S.thr); store.set("ch", S.channels); store.set("mvp", S.mvp);
+  store.set("cyc", S.cycles); store.set("bridge", S.bridge); store.set("ints", S.ints.filter(i => !i.custom || i.url));
+  const diff = {}; for (const k in S.tpl) if (S.tpl[k] !== TPL_DEFAULT[k]) diff[k] = S.tpl[k]; store.set("tpl", diff);
+}
+function renderLocs(){ $("#locSel").innerHTML = allLocs().map((l, i) => `<option value="${i}" ${i === S.locIdx ? "selected" : ""}>${esc(l.name)}</option>`).join(""); }
+$("#locSel").onchange = e => { S.locIdx = +e.target.value; changeLocation(); };
+function changeLocation(){ S.signals = []; S.businesses.clear(); S.packages = []; buildBase(); renderLegend(); renderCoords(); renderPkgs(); save(); toast("Targeting " + loc().name); }
+$("#runBtn").onclick = () => {
+  S.running = !S.running;
+  $("#runTxt").textContent = S.running ? "Pause" : "Resume"; $("#runBtn").setAttribute("aria-label", S.running ? "Pause signals" : "Resume signals");
+  $("#runIco").innerHTML = S.running ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M7 4l13 8-13 8z"/>';
+  $("#liveState").classList.toggle("off", !S.running); $("#liveTxt").textContent = S.running ? "Live" : "Paused";
+};
+$("#themeBtn").onclick = () => {
+  const root = document.documentElement; const cur = root.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  root.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+};
+new MutationObserver(buildBase).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", buildBase);
+
+document.querySelectorAll(".tabs[data-group]").forEach(g => g.addEventListener("click", e => {
+  const t = e.target.closest(".tab"); if (!t) return;
+  g.querySelectorAll(".tab").forEach(x => { x.setAttribute("aria-selected", x === t); const p = document.getElementById(x.dataset.pane); if (p) p.hidden = x !== t; });
+}));
+$("#kwForm").onsubmit = e => {
+  e.preventDefault(); const v = $("#kwInput").value.trim().toLowerCase(); if (!v) return;
+  if (S.keywords.some(k => k.term === v)){ toast("That keyword is already tracked"); return; }
+  const used = new Set(S.keywords.map(k => k.color)); const color = PALETTE.find(c => !used.has(c)) || PALETTE[S.keywords.length % PALETTE.length];
+  S.keywords.push({ term: v, cat: $("#kwCat").value, color, on: true, count: 0 }); $("#kwInput").value = "";
+  save(); renderKw(); renderLegend(); toast(`Tracking "${v}"`);
+};
+$("#radius").oninput = e => { S.fence.r = +e.target.value; $("#radVal").textContent = S.fence.r + " mi"; renderCoords(); save(); };
+$("#rate").oninput = e => { S.rate = +e.target.value; $("#rateVal").textContent = S.rate + " / min"; save(); };
+$("#thr").oninput = e => { S.thr = +e.target.value; $("#thrVal").textContent = `${S.thr}+ failed checks`; save(); };
+$("#mvp").onchange = e => { S.mvp = e.target.checked; if (S.mvp){ ["call","voice","social","gads","dm","mail","report"].forEach(c => S.channels[c] = false); S.channels.email = S.channels.sms = true; S.channels.form = true; } renderChannels(); renderSeq(); save(); toast(S.mvp ? "MVP mode: email + SMS, 3 touches" : "Full multi-channel sequence"); };
+$("#cycles").oninput = e => { S.cycles = +e.target.value; renderSeq(); save(); };
+$("#bridgeOn").onchange = e => { S.bridge = e.target.checked; renderBridge(); save(); };
+$("#chanList").addEventListener("change", () => renderSeq());
+$("#tplSel").onchange = () => $("#tplText").value = S.tpl[$("#tplSel").value];
+$("#tplText").oninput = () => { S.tpl[$("#tplSel").value] = $("#tplText").value; save(); $("#tplSaved").textContent = "Saved"; };
+$("#tplReset").onclick = () => { const k = $("#tplSel").value; S.tpl[k] = TPL_DEFAULT[k]; $("#tplText").value = S.tpl[k]; save(); $("#tplSaved").textContent = "Default restored"; };
+$("#customLoc").onsubmit = e => {
+  e.preventDefault(); const lat = parseFloat($("#cl-lat").value), lng = parseFloat($("#cl-lng").value), name = $("#cl-name").value.trim() || "Custom area";
+  if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180){ toast("Enter a latitude between -90 and 90 and a longitude between -180 and 180"); return; }
+  S.customLocs.push({ name, lat, lng, hoods: ["North","Downtown","East","West","Midtown","South"] }); S.locIdx = allLocs().length - 1; renderLocs(); changeLocation();
+};
+$("#intForm").onsubmit = e => {
+  e.preventDefault(); const name = $("#if-name").value.trim(), url = $("#if-url").value.trim(); if (!name || !url) return;
+  S.ints.push({ id: "c-" + Date.now(), name, cat: "Automation", c: PALETTE[S.ints.length % PALETTE.length], on: true, d: "Custom webhook", url, evt: $("#if-evt").value, custom: true });
+  e.target.reset(); save(); renderInts(); toast(`${name} added. Events will post to its webhook.`);
+};
+$("#recenter").onclick = () => { S.fence.x = .5; S.fence.y = .5; renderCoords(); save(); };
+$("#burst").onclick = () => { for (let i = 0; i < 12; i++) setTimeout(() => spawn(), i * 90); toast("Search burst: 12 signals"); };
+$("#clearMap").onclick = () => { S.signals = []; };
+
+/* map interaction: tap a signal for details, tap empty map to move the fence */
+cv.addEventListener("click", e => {
+  const r = cv.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top;
+  let best = null, bd = 16;
+  S.signals.forEach(s => { const d = Math.hypot(s.x * W - x, s.y * H - y); if (d < bd){ bd = d; best = s; } });
+  const pk = S.packages.find(p => p.bx && Math.hypot(p.bx - x, p.by - y) < 10);
+  const tip = $("#tip");
+  if (pk && !best){ openPkg(pk); return; }
+  if (best){
+    tip.innerHTML = `<h3 style="color:${best.inside ? best.kw.color : "inherit"}">${esc(best.kw.term)}</h3><dl><dt>Source</dt><dd>${SRC_NAME[best.src]}</dd><dt>Location</dt><dd>${best.lat.toFixed(4)}, ${best.lng.toFixed(4)}</dd><dt>Time</dt><dd>${clock(best.wall)}</dd><dt>Status</dt><dd>${best.inside ? (best.pkgLine ? best.pkgLine.id + " · " + esc(best.pkgLine.biz.name) : "Sent to Ad Engine") : "Outside fence"}</dd></dl>`;
+    tip.style.left = Math.min(x + 12, W - 242) + "px"; tip.style.top = Math.min(y + 12, H - 140) + "px"; tip.hidden = false; return;
+  }
+  tip.hidden = true;
+  S.fence.x = x / W; S.fence.y = y / H; renderCoords(); save();
+});
+window.addEventListener("resize", () => { resize(); renderCoords(); });
+
+/* ---------- public API for other tools ---------- */
+window.ProspectAI = {
+  on(type, fn){ (listeners[type] = listeners[type] || []).push(fn); return () => listeners[type] = listeners[type].filter(f => f !== fn); },
+  pushSignal({ keyword, lat, lng, source = "search" }){
+    let kw = S.keywords.find(k => k.term === String(keyword).toLowerCase());
+    if (!kw){ kw = { term: String(keyword).toLowerCase(), cat: "Restaurant", color: PALETTE[S.keywords.length % PALETTE.length], on: true, count: 0 }; S.keywords.push(kw); renderKw(); renderLegend(); }
+    const p = lat != null && lng != null ? fromLatLng(lat, lng) : {};
+    spawn({ kw, src: SOURCES.some(s => s.id === source) ? source : "search", x: p.x, y: p.y });
+  },
+  registerIntegration(def){ const id = "sdk-" + (def.id || def.name); custom.push(def); S.ints.push({ id, name: def.name, cat: def.category || "Automation", c: def.color || "#64748B", on: true, d: def.description || "Registered via SDK", custom: true }); renderInts(); return id; },
+  getState(){ return { location: loc(), fence: { ...S.fence, ...toLatLng(S.fence.x, S.fence.y) }, keywords: S.keywords.map(k => ({ term: k.term, count: k.count, on: k.on })), stats: { ...S.stats }, packages: S.packages.map(publicPkg) }; },
+  setGeofence({ lat, lng, radius }){ if (lat != null && lng != null){ const p = fromLatLng(lat, lng); S.fence.x = p.x; S.fence.y = p.y; } if (radius) S.fence.r = radius; renderCoords(); save(); }
+};
+
+/* ---------- boot ---------- */
+S.keywords.forEach(k => k.count = 0);
+renderLocs(); resize(); renderLegend(); renderCoords(); renderKw(); renderSources(); renderCrit(); renderChannels(); renderSeq(); renderPipe(); renderPkgs(); renderBridge(); renderPix(); renderInts(); renderStats();
+$("#radius").value = S.fence.r; $("#radVal").textContent = S.fence.r + " mi"; $("#rate").value = S.rate; $("#rateVal").textContent = S.rate + " / min";
+$("#tplText").value = S.tpl.emailSubject;
+// warm start: a realistic working state on first frame (simulated example data)
+for (let i = 0; i < 14; i++) spawn();
+requestAnimationFrame(t => { last = t; tick(t); });
+if (document.fonts) document.fonts.ready.then(buildBase);
+})();
+</script>
+
+</body>
+</html>
