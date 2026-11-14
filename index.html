@@ -46,6 +46,8 @@ h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;font-weight:600
 /* stage */
 .stage{position:fixed;inset:0;overflow:hidden}
 #map{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:manipulation}
+#gmap{position:absolute;inset:0;background:var(--bg)}
+body.gm #map{pointer-events:none}
 .vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 50%,transparent 55%,rgba(0,0,0,.75) 100%)}
 
 /* HUD top */
@@ -310,10 +312,12 @@ mark.hl{background:rgba(143,227,255,.18);color:var(--accent);border-radius:4px;p
 .tvc .meta{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--line)}
 @media (max-width:380px){ .dock{gap:0;padding:4px} .dock .rb{flex-basis:28px} .dock .rb svg{width:18px;height:18px} .brand h1{font-size:15px} .sel{max-width:96px} .mode{padding:4px 7px} .capbar{gap:4px} .capbtn{padding:10px 4px} }
 @media (max-width:760px) and (orientation:landscape){ .kpis{display:none} .drawer,.drawer.l,.drawer.r{max-height:calc(100% - 120px)} }
+@media (max-width:760px){ body.gm #gmap{bottom:calc(58px + env(safe-area-inset-bottom,0px))} }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
 <div class="stage">
+  <div id="gmap" hidden aria-label="Google Map"></div>
   <canvas id="map" role="img" aria-label="Live map of keyword search signals inside the geofence"></canvas>
   <div class="vignette"></div>
 
@@ -518,6 +522,10 @@ POST /api/devices/:id/events  X-Device-Token
         <input class="inp full mono" id="apiKey" placeholder="API key (needed to save changes)" type="password" autocomplete="off" aria-label="API key">
         <div class="row"><button class="btn pri grow" type="submit">Connect</button><button class="btn" type="button" id="goDemo">Use demo data</button></div>
       </form>
+      <div class="group"><div class="lbl">Google Maps</div>
+        <div class="opt card"><div class="grow"><b>Signals over Google Maps</b><small id="gmState">Add a Maps JavaScript API key to show the real map.</small></div><label class="sw"><input type="checkbox" id="gmOn" aria-label="Show Google Maps"><span></span></label></div>
+        <div class="row"><input class="inp grow mono" id="gmKey" placeholder="Browser key, AIza…" autocomplete="off" aria-label="Google Maps browser key"><button class="btn" type="button" id="gmApply">Load map</button></div>
+      </div>
       <div class="opt card"><div class="grow"><b>Demo traffic</b><small>Generate example signals. On a live server this switches its simulator.</small></div><label class="sw"><input type="checkbox" id="simOn" aria-label="Demo traffic"><span></span></label></div>
       <div class="group"><div class="lbl">REST + live stream</div>
 <pre class="code"><span class="c"># push a real signal from any app</span>
@@ -830,6 +838,7 @@ const Live = {
   async connect(base){
     const h = await this.probe(base); if (!h) return false;
     this.close(); this.base = base; this.health = h;
+    if (h.mapsKey && GM.on && !GM.key && !GM.map) GM.load(h.mapsKey);
     this.es = new EventSource(this.url("/api/stream"));
     this.es.addEventListener("hello", e => this.hydrate(JSON.parse(e.data)));
     ["signal","bridge","lead","monitor","package","touch","demand","reply","booked","config","device","geofence"].forEach(t => this.es.addEventListener(t, e => { const ev = JSON.parse(e.data); dispatch(t, ev.data, ev.stats); }));
@@ -868,9 +877,53 @@ function changed(){ save(); Live.push(); }
 const cv = $("#map"), ctx = cv.getContext("2d");
 let W = 1, H = 1, DPR = 1, base = null, sweep = 0;
 const T = {}; { const cs = getComputedStyle(document.documentElement); ["map-land","map-block","map-road","map-major","map-water","map-park","map-label","accent","accent-2","fg","muted","dim"].forEach(k => T[k] = cs.getPropertyValue("--" + k).trim()); }
-const ppm = () => Math.max(W, H) / 10;
-function project(lat, lng){ const L = loc(); return { x: W / 2 + (lng - L.lng) * 69 * Math.cos(L.lat * Math.PI / 180) * ppm(), y: H / 2 - (lat - L.lat) * 69 * ppm() }; }
-function unproject(x, y){ const L = loc(); return { lat: L.lat - (y - H / 2) / ppm() / 69, lng: L.lng + (x - W / 2) / ppm() / (69 * Math.cos(L.lat * Math.PI / 180)) }; }
+/* ================= Google Maps base layer ================= */
+const GM_STYLE = [
+  {elementType: "geometry", stylers: [{color: "#0A0D13"}]}, {elementType: "labels.text.fill", stylers: [{color: "#8C95A8"}]}, {elementType: "labels.text.stroke", stylers: [{color: "#05070B"}]},
+  {featureType: "administrative", elementType: "geometry", stylers: [{color: "#243049"}]}, {featureType: "landscape.man_made", elementType: "geometry", stylers: [{color: "#0D1119"}]},
+  {featureType: "poi", elementType: "geometry", stylers: [{color: "#0D1119"}]}, {featureType: "poi", elementType: "labels.icon", stylers: [{saturation: -70}, {lightness: -25}]},
+  {featureType: "poi.park", elementType: "geometry", stylers: [{color: "#08110E"}]}, {featureType: "road", elementType: "geometry", stylers: [{color: "#171D29"}]},
+  {featureType: "road", elementType: "geometry.stroke", stylers: [{color: "#10141D"}]}, {featureType: "road.highway", elementType: "geometry", stylers: [{color: "#1F2738"}]},
+  {featureType: "road", elementType: "labels.icon", stylers: [{visibility: "off"}]}, {featureType: "transit", elementType: "geometry", stylers: [{color: "#10141D"}]},
+  {featureType: "water", elementType: "geometry", stylers: [{color: "#04080F"}]}, {featureType: "water", elementType: "labels.text.fill", stylers: [{color: "#3D4A63"}]}];
+const GM = {
+  map: null, ov: null, ready: false, loading: false, key: store.get("gmapsKey", ""), on: store.get("gmapsOn", true), status: "",
+  active(){ return this.on && this.ready && !!this.ov?.getProjection(); },
+  proj(){ return this.ov.getProjection(); },
+  state(t){ this.status = t; const el = $("#gmState"); if (el) el.textContent = t; },
+  load(key){
+    if (!key || this.loading) return;
+    if (window.google?.maps?.Map) return this.init();
+    this.loading = true; this.state("Loading Google Maps…");
+    window.__prospectGm = () => { this.loading = false; this.init(); };
+    window.gm_authFailure = () => this.fail("Google rejected this key. Check that the Maps JavaScript API is enabled and this site is allowed for the key.");
+    const sc = document.createElement("script");
+    sc.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(key) + "&v=weekly&loading=async&callback=__prospectGm";
+    sc.async = true; sc.onerror = () => this.fail("Google Maps could not load here, so the drawn map is shown. Open the app from its own server to use Google Maps.");
+    document.head.append(sc);
+    setTimeout(() => { if (this.loading) this.fail("Google Maps took too long to load, so the drawn map is shown."); }, 10000);
+  },
+  init(){
+    const g = google.maps;
+    if (!this.map){
+      this.map = new g.Map($("#gmap"), { center: {lat: loc().lat, lng: loc().lng}, zoom: isPhone() ? 12 : 13, styles: GM_STYLE, backgroundColor: "#05070B",
+        disableDefaultUI: true, gestureHandling: "greedy", clickableIcons: false, keyboardShortcuts: false });
+      this.ov = new g.OverlayView(); this.ov.onAdd = () => {}; this.ov.onRemove = () => {}; this.ov.draw = () => { this.ready = true; };
+      this.ov.setMap(this.map);
+      // The canvas lets drags and zooms through to Google; taps come back here and go to the same handler as before.
+      this.map.addListener("click", e => { const p = this.ov.getProjection()?.fromLatLngToContainerPixel(e.latLng); if (p) mapTap(p.x, p.y); });
+    }
+    this.show(true); this.state("Google Maps is on. Drag and zoom the map; signals stay in place.");
+  },
+  show(on){ $("#gmap").hidden = !on; document.body.classList.toggle("gm", on); if (!on) this.ready = false; else if (this.ov?.getProjection()) this.ready = true; },
+  fail(msg){ this.loading = false; this.show(false); this.state(msg); toast(msg); },
+  pan(){ if (this.map) this.map.panTo({lat: loc().lat, lng: loc().lng}); }
+};
+let gmPpm = 0;
+const ppm = () => GM.active() ? (gmPpm || 1) : Math.max(W, H) / 10;
+function gmProject(lat, lng){ const p = GM.proj().fromLatLngToContainerPixel(new google.maps.LatLng(lat, lng)); return {x: p.x, y: p.y}; }
+function project(lat, lng){ if (GM.active()) return gmProject(lat, lng); const L = loc(); return { x: W / 2 + (lng - L.lng) * 69 * Math.cos(L.lat * Math.PI / 180) * ppm(), y: H / 2 - (lat - L.lat) * 69 * ppm() }; }
+function unproject(x, y){ if (GM.active()){ const ll = GM.proj().fromContainerPixelToLatLng(new google.maps.Point(x, y)); return {lat: ll.lat(), lng: ll.lng()}; } const L = loc(); return { lat: L.lat - (y - H / 2) / ppm() / 69, lng: L.lng + (x - W / 2) / ppm() / (69 * Math.cos(L.lat * Math.PI / 180)) }; }
 function resize(){ const r = cv.getBoundingClientRect(); DPR = Math.min(devicePixelRatio || 1, 3); W = Math.max(1, r.width); H = Math.max(1, r.height); cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); buildBase(); }
 function buildBase(){
   base = document.createElement("canvas"); base.width = cv.width; base.height = cv.height;
@@ -921,7 +974,9 @@ function drawDevices(now){
 function roundRect(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 function pinPos(p){ const o = rng(hash(p.business.id)); const c = project(p.lat, p.lng); return { x: c.x + (o() - .5) * 46, y: c.y + (o() - .5) * 46 }; }
 function draw(now){
-  ctx.setTransform(1, 0, 0, 1, 0, 0); if (base) ctx.drawImage(base, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (GM.active()){ ctx.clearRect(0, 0, cv.width, cv.height); const a = gmProject(S.fence.lat, S.fence.lng), b = gmProject(S.fence.lat + 1 / 69, S.fence.lng); gmPpm = Math.abs(a.y - b.y) || 1; }
+  else if (base) ctx.drawImage(base, 0, 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const f = project(S.fence.lat, S.fence.lng), fr = S.fence.r * ppm();
   const rg = ctx.createRadialGradient(f.x, f.y, fr * .2, f.x, f.y, fr);
@@ -1157,7 +1212,7 @@ document.addEventListener("keydown", e => {
 
 /* ================= controls ================= */
 $("#locSel").onchange = e => { S.locIdx = +e.target.value; changeLocation(); };
-function changeLocation(){ S.fence = {lat: loc().lat, lng: loc().lng, r: S.fence.r}; S.signals = []; if (S.mode === "demo"){ S.packages = []; Demo.reset(); Demo.fleet(); } buildBase(); renderLegend(); renderCoords(); renderPkgs(); changed(); toast("Targeting " + loc().name); }
+function changeLocation(){ GM.pan(); S.fence = {lat: loc().lat, lng: loc().lng, r: S.fence.r}; S.signals = []; if (S.mode === "demo"){ S.packages = []; Demo.reset(); Demo.fleet(); } buildBase(); renderLegend(); renderCoords(); renderPkgs(); changed(); toast("Targeting " + loc().name); }
 $("#runBtn").onclick = () => {
   S.running = !S.running;
   $("#runBtn").setAttribute("aria-label", S.running ? "Pause live feed" : "Resume live feed");
@@ -1209,6 +1264,16 @@ $("#connForm").onsubmit = async e => {
   e.preventDefault(); const b = $("#apiBase").value.trim().replace(/\/$/, ""); S.conn = {base: b, key: $("#apiKey").value.trim()}; store.set("conn", S.conn);
   if (!b) return toast("Enter the server address first");
   toast("Connecting…"); if (!(await Live.connect(b))) toast("No ProspectAI server answered at that address");
+};
+$("#gmKey").value = GM.key; $("#gmOn").checked = GM.on; GM.state(GM.key ? "Key saved in this browser." : "Add a Maps JavaScript API key to show the real map.");
+$("#gmApply").onclick = () => {
+  const k = $("#gmKey").value.trim(); if (!/^AIza[\w-]{20,}$/.test(k)) return toast("That doesn't look like a Google Maps key (it starts with AIza)");
+  GM.key = k; store.set("gmapsKey", k); GM.on = true; store.set("gmapsOn", true); $("#gmOn").checked = true; GM.load(k);
+};
+$("#gmOn").onchange = e => {
+  GM.on = e.target.checked; store.set("gmapsOn", GM.on);
+  if (!GM.on){ GM.show(false); GM.state("Off. The drawn map is shown."); return; }
+  if (GM.map) GM.init(); else if (GM.key) GM.load(GM.key); else { GM.state("Add a key below, then tap Load map."); $("#gmKey").focus(); }
 };
 $("#goDemo").onclick = () => { Live.close(); S.simOn = true; setMode("demo"); toast("Using demo data"); };
 $("#copyState").onclick = () => { const txt = JSON.stringify(window.ProspectAI.getState(), null, 2); (navigator.clipboard?.writeText(txt) || Promise.reject()).then(() => toast("State copied"), () => toast("Copy is blocked here. Run ProspectAI.getState() in the console.")); };
@@ -1302,8 +1367,8 @@ $("#apiForm").onsubmit = async e => {
   toast(S.mode === "live" ? `${name} connected. Use Test to send a sample event.` : `${name} added. It starts calling the API once a server is connected.`);
 };
 
-cv.addEventListener("click", e => {
-  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, tip = $("#tip");
+function mapTap(x, y){
+  const tip = $("#tip");
   const pk = S.packages.find(p => p._x != null && Math.hypot(p._x - x, p._y - y) < 11); if (pk) return openPkg(pk);
   let best = null, bd = 16; S.signals.forEach(s => { const d = Math.hypot(s._x - x, s._y - y); if (d < bd){ bd = d; best = s; } });
   if (best){
@@ -1316,7 +1381,8 @@ cv.addEventListener("click", e => {
   const ll = unproject(x, y); S.fence.lat = ll.lat; S.fence.lng = ll.lng; renderCoords(); changed();
   if (S.me.loc) setMeLoc(S.me.loc, $("#capLocTxt").textContent);
   S.devices.forEach(d => { if (d.location) d.insideFence = miles(d.location, S.fence) <= S.fence.r; }); renderDevices();
-});
+}
+cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); mapTap(e.clientX - r.left, e.clientY - r.top); });
 addEventListener("resize", resize);
 (function watchDpr(){ const m = matchMedia(`(resolution: ${devicePixelRatio || 1}dppx)`); m.addEventListener?.("change", () => { resize(); watchDpr(); }, {once: true}); })();
 
@@ -1341,6 +1407,7 @@ window.ProspectAI = {
 renderAll(); resize();
 requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
 if (document.fonts) document.fonts.ready.then(buildBase);
+if (GM.on && GM.key) GM.load(GM.key);
 // In the Claude artifact viewer, speech comes from the dictation capability; elsewhere from the browser's speech API.
 if (window.claude?.use) window.claude.use("dictation").then(d => {
   if (!d) return; dictation = d;

@@ -47,6 +47,14 @@ Phones, websites and apps that opted in send what the person says or types in yo
 | Mailed brochure | Lob | `LOB_API_KEY` |
 | Anything else | A plugin channel or an API connector | see [docs/plugins.md](docs/plugins.md) |
 
+## Google Maps
+
+The live map can sit on top of Google Maps (dark styled, with Google's businesses and places), with the signals, geofence, devices and business pins blinking over it. Drag and zoom the map and everything stays in place.
+
+- Set `GOOGLE_MAPS_BROWSER_KEY` on the server (the dashboard picks it up when it connects), or paste a key under **Connection & API → Google Maps**.
+- Use a browser key with the **Maps JavaScript API** enabled, restricted by HTTP referrer to your domain.
+- Where Google Maps cannot load (no key, a rejected key, or the hosted artifact, which blocks outside scripts), the dashboard shows its drawn map and says why.
+
 ## Demo vs live
 
 - **Demo**: opened as a plain file or as the hosted artifact, the dashboard runs the same pipeline in the browser with example businesses.

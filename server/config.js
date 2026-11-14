@@ -18,6 +18,7 @@ export const config = {
   pluginsDir: env.PLUGINS_DIR ?? "plugins",
   keys: {
     googleMaps: env.GOOGLE_MAPS_API_KEY || "",
+    googleMapsBrowser: env.GOOGLE_MAPS_BROWSER_KEY || "",   // public key for the dashboard map; restrict it by HTTP referrer
     sendgrid: env.SENDGRID_API_KEY || "",
     fromEmail: env.FROM_EMAIL || "",
     twilioSid: env.TWILIO_SID || "",

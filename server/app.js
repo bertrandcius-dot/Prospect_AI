@@ -67,7 +67,7 @@ export function createApp(config, deps = {}) {
 
   /* ---------- routes ---------- */
   const routes = [
-    ["GET", /^\/api\/health$/, async () => ({ ok: true, version: VERSION, uptimeSec: Math.round((Date.now() - started) / 1000), provider: places.name, simulate: !!sim, streams: clients.size })],
+    ["GET", /^\/api\/health$/, async () => ({ ok: true, version: VERSION, uptimeSec: Math.round((Date.now() - started) / 1000), provider: places.name, simulate: !!sim, streams: clients.size, ...(config.keys.googleMapsBrowser ? { mapsKey: config.keys.googleMapsBrowser } : {}) })],
     ["GET", /^\/api\/state$/, async () => snapshot()],
     ["GET", /^\/api\/stats$/, async () => store.stats],
     ["GET", /^\/api\/config$/, async () => store.getConfig()],
