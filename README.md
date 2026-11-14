@@ -2,65 +2,90 @@
 
 A prospecting agent for small businesses, built for **Hydron Culture**. It watches keyword searches inside a geofenced area, finds local businesses with a weak online presence, and sends each one a personalized outreach package: email, SMS, cold call, voice message, social ads through a pixel, a competitor report and a lead form.
 
-Google handles trillions of searches a year. A business that isn't visible there loses those customers to competitors that are.
-
 ## The dashboard
 
-| Area | What it does |
-| --- | --- |
-| **Center: live map** | Geofence circle with a radar sweep. Each keyword signal blinks in its keyword's color. Shape shows the source: ● search, ▲ maps, ◆ voice, ■ pixel. Tap the map to move the fence, tap a signal for details, tap a business pin to open its package. |
-| **Left: targeting** | **Keywords**: add, toggle and color-code trigger terms, and turn signal sources on or off. **Geofence**: radius, search volume, custom lat/lng. **Qualify**: the five weak-presence checks and the threshold. **Sequence**: the follow-up timeline, MVP mode (3 touches) and the 14-day recycle. |
-| **Right: engine** | **Signals**: live feed. **Ad Engine**: the pipeline funnel (Detect → Qualify → Reach out → Replied → Convert), outreach packages, channel toggles and editable templates. **Pixel ↔ Voice**: the two-way bridge between voice searches and social pixel audiences. **Integrations**: connect tools, add custom webhooks, developer API. |
+A black, full-screen live map with a glass HUD. Every feature sits behind an icon, so the map stays clear.
 
-On phones the layout stacks with the map first, then the engine panel, then targeting.
+| Where | Icon | Opens |
+| --- | --- | --- |
+| Left rail | Search | **Keyword triggers**: add, color and toggle terms; turn signal sources on or off |
+| | Target | **Geofence**: radius, demo volume, any lat/lng (or tap the map) |
+| | Filter | **Qualification rules**: the 5 weak-presence checks and the threshold |
+| | Branch | **Follow-up sequence**: 10-day timeline, MVP mode (3 touches), recycle cycles |
+| | Bolt / crosshair | Send a test burst of signals / recenter the fence |
+| Right rail | Pulse | **Live signals** feed (badge counts unseen signals) |
+| | Robot | **Ad Engine Agent**: funnel, packages, channels, editable templates |
+| | Mic | **Pixel ↔ Voice bridge** |
+| | Plug | **Integrations**: 15 built-in apps plus any webhook |
+| | Server | **Connection & API**: server address, API key, demo traffic, API reference |
 
-## Agent workflow
+On phones the two rails merge into one bottom dock and drawers open as sheets.
 
-1. **Detect**: keyword signal from Search Console, Maps, voice search or a social pixel, inside the geofence
-2. **Qualify**: score nearby businesses on profile, reviews/rating, search and AI ranking, directory coverage and Google Ads. Failing 3 or more checks (configurable) qualifies the business. Businesses that pass go to the monitoring and maintenance offer.
-3. **Reach out**: the Ad Engine Agent builds a package with `{{owner_name}}`, `{{business_name}}`, `{{keyword}}`, `{{search_count}}`, `{{competitor}}` and `{{gap}}` filled in
-4. **Follow up**: Day 1 email + report → Day 3 SMS → Day 7 call, or the full 10-day multi-channel sequence
-5. **Convert**: a reply books a discovery call. Pipeline MRR is estimated at $299/month per booked account.
+Signals blink in their keyword's color. Shape shows the source: ● search, ▲ maps, ◆ voice, ■ pixel. Tap a signal for details, tap a business pin to open its package, tap empty map to move the fence. Each package lets you log **Mark replied** and **Mark call booked**, which updates the pipeline and every connected app.
+
+## Demo vs live
+
+- **Demo**: opened as a plain file or as the hosted artifact, the dashboard runs the same pipeline in the browser with example businesses.
+- **Live**: served by the ProspectAI server (or pointed at it under Connection & API), it streams real events over SSE, and every change you make (keywords, fence, rules, channels, templates, integrations) is saved on the server.
 
 ## Run it
 
-The dashboard is one static file with no build step. Open `index.html`, or:
+```bash
+cp .env.example .env
+npm start            # http://localhost:8787
+npm run dev          # demo traffic on, 10-day sequence runs in ~50 seconds
+npm test
+docker compose up --build
+```
+
+No dependencies to install; Node 18.17+ only.
+
+## Architecture
+
+```
+server/
+  index.js          entry, graceful shutdown
+  app.js            REST routes, SSE stream, auth, rate limiting, static dashboard
+  agent.js          signal → geofence → lookup → qualify → package → channels → sequence
+  bus.js            event bus with replay buffer (swap for Redis pub/sub to fan out)
+  store.js          MemoryStore + JSON snapshots (swap for Postgres, same methods)
+  integrations.js   catalog, signed webhooks (HMAC-SHA256) with retry + backoff, HubSpot, Slack
+  channels/         SendGrid, Twilio SMS/calls/voicemail, Meta Conversions API, WhatsApp Cloud, Lob
+  providers/        Google Places (New) text search, deterministic simulator
+  simulator.js      demo traffic through the real pipeline
+src/app.html        the dashboard (build.sh wraps it into index.html)
+openapi.yaml        full API reference
+```
+
+Every channel runs as a **dry run** until its keys are set, so the whole loop works on day one and turns real one integration at a time.
+
+### Scaling
+
+- The HTTP layer is stateless when `DATA_FILE` is empty: run as many replicas as you need behind a load balancer.
+- Replace `MemoryStore` with a Postgres implementation of the same 12 methods, and the bus `subscribe/publish` with Redis pub/sub, so every replica sees every event.
+- Move the follow-up `setTimeout` scheduler in `agent.js` to a durable queue (BullMQ, Cloud Tasks, SQS) keyed by package id and day.
+- Rate limiting is per instance; put a gateway limit in front for global quotas.
+
+## Connecting other apps
 
 ```bash
-node server/index.js
+# send a signal from anything: a form, Zapier, a voice app, your own tracker
+curl -X POST localhost:8787/api/signals -H 'X-API-Key: $API_KEY' -H 'Content-Type: application/json' \
+  -d '{"keyword":"pizza near me","lat":40.6782,"lng":-73.9442,"source":"voice"}'
+
+# receive every package in your app (signed with WEBHOOK_SECRET)
+curl -X POST localhost:8787/api/integrations -H 'X-API-Key: $API_KEY' -H 'Content-Type: application/json' \
+  -d '{"name":"Airtable","url":"https://hooks.example.com/abc","events":"package"}'
 ```
 
-Then open http://localhost:8787. The server exposes the same loop as an API (`/api/signals`, `/api/prospects`, `/api/outreach`, `/api/integrations`). Every adapter runs as a dry run until you set its keys:
+Verify webhooks by computing `sha256=` + HMAC-SHA256 of the raw body with `WEBHOOK_SECRET` and comparing it to `X-Prospect-Signature`.
 
-```bash
-export GOOGLE_MAPS_API_KEY=... SENDGRID_API_KEY=... FROM_EMAIL=you@yourdomain.com
-export TWILIO_SID=... TWILIO_TOKEN=... TWILIO_FROM=+15551234567
-```
-
-After editing `src/app.html`, run `./build.sh` to regenerate `index.html`.
-
-## Connecting other tools
-
-From the browser console, or any script loaded on the page:
-
-```js
-ProspectAI.pushSignal({ keyword: "pizza near me", lat: 40.6782, lng: -73.9442, source: "voice" });
-ProspectAI.on("package", pkg => console.log(pkg));          // also: signal, lead, booked
-ProspectAI.registerIntegration({ name: "Airtable", category: "CRM", onEvent: (type, data) => {} });
-ProspectAI.setGeofence({ lat: 25.8283, lng: -80.1937, radius: 2 });
-ProspectAI.getState();
-```
-
-Events are also dispatched as `window` events (`prospect:signal`, `prospect:lead`, `prospect:package`, `prospect:booked`), and custom webhooks can be added from the Integrations tab.
+In the page: `ProspectAI.on("package", fn)`, `ProspectAI.pushSignal({...})`, `ProspectAI.registerIntegration({name, onEvent})`, `ProspectAI.connect(url)`, `ProspectAI.getState()`. Events are also dispatched as `window` events named `prospect:<type>`.
 
 ## Data and compliance
 
-The dashboard runs on **simulated signals and example businesses** until real APIs are connected. In production, voice and pixel signals must come only from users who opted in through the platform SDKs. Search Console and ad platforms report aggregated data, not individual searchers. SMS and calls must follow TCPA rules, including consent, quiet hours and STOP replies, and email must follow CAN-SPAM.
+Demo data is simulated. In production, voice and pixel signals must come only from people who opted in through the platform SDKs; Search Console and ad platforms report aggregated searches, not individual searchers. SMS and calls must follow TCPA (consent, quiet hours, STOP), and email must follow CAN-SPAM. Set `API_KEY` before exposing the server.
 
 ## Pricing model
 
-- $299/month base, up to 200 leads
-- $1.50 per lead above that
-- $799/month agency tier with white-label and API access
-
-See [docs/architecture.md](docs/architecture.md) for the system design.
+$299/month base (200 leads), $1.50 per extra lead, $799/month agency tier with white-label and API access.
