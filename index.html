@@ -46,8 +46,9 @@ h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;font-weight:600
 /* stage */
 .stage{position:fixed;inset:0;overflow:hidden}
 #map{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:manipulation}
-#gmap{position:absolute;inset:0;background:var(--bg)}
+#gmap{position:absolute;inset:0;background:#E5E3DF}
 body.gm #map{pointer-events:none}
+body.gm .vignette{display:none}
 .vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 50%,transparent 55%,rgba(0,0,0,.75) 100%)}
 
 /* HUD top */
@@ -878,14 +879,6 @@ const cv = $("#map"), ctx = cv.getContext("2d");
 let W = 1, H = 1, DPR = 1, base = null, sweep = 0;
 const T = {}; { const cs = getComputedStyle(document.documentElement); ["map-land","map-block","map-road","map-major","map-water","map-park","map-label","accent","accent-2","fg","muted","dim"].forEach(k => T[k] = cs.getPropertyValue("--" + k).trim()); }
 /* ================= Google Maps base layer ================= */
-const GM_STYLE = [
-  {elementType: "geometry", stylers: [{color: "#0A0D13"}]}, {elementType: "labels.text.fill", stylers: [{color: "#8C95A8"}]}, {elementType: "labels.text.stroke", stylers: [{color: "#05070B"}]},
-  {featureType: "administrative", elementType: "geometry", stylers: [{color: "#243049"}]}, {featureType: "landscape.man_made", elementType: "geometry", stylers: [{color: "#0D1119"}]},
-  {featureType: "poi", elementType: "geometry", stylers: [{color: "#0D1119"}]}, {featureType: "poi", elementType: "labels.icon", stylers: [{saturation: -70}, {lightness: -25}]},
-  {featureType: "poi.park", elementType: "geometry", stylers: [{color: "#08110E"}]}, {featureType: "road", elementType: "geometry", stylers: [{color: "#171D29"}]},
-  {featureType: "road", elementType: "geometry.stroke", stylers: [{color: "#10141D"}]}, {featureType: "road.highway", elementType: "geometry", stylers: [{color: "#1F2738"}]},
-  {featureType: "road", elementType: "labels.icon", stylers: [{visibility: "off"}]}, {featureType: "transit", elementType: "geometry", stylers: [{color: "#10141D"}]},
-  {featureType: "water", elementType: "geometry", stylers: [{color: "#04080F"}]}, {featureType: "water", elementType: "labels.text.fill", stylers: [{color: "#3D4A63"}]}];
 const GM = {
   map: null, ov: null, ready: false, loading: false, key: store.get("gmapsKey", ""), on: store.get("gmapsOn", true), status: "",
   active(){ return this.on && this.ready && !!this.ov?.getProjection(); },
@@ -906,8 +899,9 @@ const GM = {
   init(){
     const g = google.maps;
     if (!this.map){
-      this.map = new g.Map($("#gmap"), { center: {lat: loc().lat, lng: loc().lng}, zoom: isPhone() ? 12 : 13, styles: GM_STYLE, backgroundColor: "#05070B",
-        disableDefaultUI: true, gestureHandling: "greedy", clickableIcons: false, keyboardShortcuts: false });
+      this.map = new g.Map($("#gmap"), { center: {lat: loc().lat, lng: loc().lng}, zoom: isPhone() ? 12 : 13, // Google's own default map: original colors, labels, icons and controls (no custom styles).
+        zoomControl: true, mapTypeControl: true, streetViewControl: true, scaleControl: true, rotateControl: true, fullscreenControl: false,
+        mapTypeControlOptions: {position: g.ControlPosition.LEFT_BOTTOM}, gestureHandling: "greedy", clickableIcons: true });
       this.ov = new g.OverlayView(); this.ov.onAdd = () => {}; this.ov.onRemove = () => {}; this.ov.draw = () => { this.ready = true; };
       this.ov.setMap(this.map);
       // The canvas lets drags and zooms through to Google; taps come back here and go to the same handler as before.
